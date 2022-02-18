@@ -17,6 +17,9 @@ import sys
 import socket
 import mysql.connector
 import matplotlib.pyplot as plt
+import pandas as pd
+from scipy.misc import derivative
+import numpy as np
 
 class AirSensBatGraph:
     
@@ -27,6 +30,9 @@ class AirSensBatGraph:
         self.host_name = "localhost"
         self.server_ip = '192.168.1.139'
         self.database_name = 'airsens'
+        # graph
+        self.filter = 12*12 # moving average on 12 measures per hours
+        self.reduce_y_scale_factor = 5
         
     def get_db_connection(self, db):
         # get the local IP adress
@@ -60,43 +66,73 @@ class AirSensBatGraph:
         bat_data = [y[4] for y in data]
         
         return x_data, temp_data, hum_data, pres_data, bat_data
+    
+    def deriv(self, x):
+        return derivative(function, x)
+
 
     def plot_air_data(self, local, l_names=None):
         # get data from db
         x, temp, hum, pres, ubat = self.get_bat_data(local)
+        
+        data = {'Time':x, 'Bat':ubat}
+        # Create DataFrame
+        df = pd.DataFrame(data)
+        f_bat = df['Bat'].rolling(window =self.filter).mean()
+        d_bat = pd.Series.diff(f_bat)
+        d_bat = [b*100 for b in d_bat] # convert values in %
+        
+        d_max = -1000
+        d_min = 1000
+        for d in d_bat:
+            if d > d_max : d_max = d
+            if d < d_min: d_min = d
+        d_m = max(abs(d_max), abs(d_min)) * self.reduce_y_scale_factor
         
         if l_names:
             label_val = l_names
         else:
             label_val = local
         
-        figure, axis = plt.subplots(2, 2)
+        fig, ax1 = plt.subplots(2, 2)
           
-        # For Sine Function
-        axis[0, 0].plot(x, temp)
-        axis[0, 0].set_title("Température")
-        axis[0, 0].grid(True)
+        # temperature
+        ax1[0, 0].plot(x, temp)
+        ax1[0, 0].set_title("Température")
+        ax1[0, 0].grid(True)
           
-        # For Cosine Function
-        axis[0, 1].plot(x, hum)
-        axis[0, 1].set_title("Humidité")
-        axis[0, 1].grid(True)
+        # humidity
+        ax1[0, 1].plot(x, hum)
+        ax1[0, 1].set_title("Humidité")
+        ax1[0, 1].grid(True)
           
-        # For Tangent Function
-        axis[1, 0].plot(x, pres)
-        axis[1, 0].set_title("Pression atm.")
-        axis[1, 0].grid(True)
+        # air pressure
+        ax1[1, 0].plot(x, pres)
+        ax1[1, 0].set_title("Pression atm.")
+        ax1[1, 0].grid(True)
           
-        # For Tanh Function
-        axis[1, 1].plot(x, ubat)
-        axis[1, 1].set_title("Batterie")
-        axis[1, 1].grid(True)
-  
+        # battery voltage
+        ax1[1, 1].set_title("Batterie")
+        ax1[1, 1].grid(True)
+        ax1[1, 1].set_xlabel('Time') 
+        ax1[1, 1].set_ylabel('U bat [V]', color = 'blue') 
+        ax1[1, 1].plot(x, ubat, color = 'blue') 
+        ax1[1, 1].tick_params(axis ='y', labelcolor = 'blue') 
+        ax1[1, 1].plot(x, f_bat, color = 'red') 
+
+        ax2 = ax1[1, 1].twinx() 
+          
+        ax2.set_ylabel('d(bat/dt) [%]', color = 'gray') 
+        ax2.plot(x, d_bat, color = 'gray') 
+        ax2.tick_params(axis ='y', labelcolor = 'gray')
+        ax2.set_ylim([-d_m, d_m])
+          
         # Combine all the operations and display
-        figure.suptitle(label_val)
+        fig.suptitle(label_val)
         plt.show()        # plot
         
     def main(self):
+#         self.plot_air_data('B9', 'Office')
         locaux = ['sa', 'B9', 'ex']
         l_names = ['Salon', 'Bureau', 'Extérieur']
         for i, local in enumerate(locaux):

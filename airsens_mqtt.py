@@ -148,8 +148,8 @@ class AirSens:
 
     # This is the Subscriber
     def on_connect(self, client, userdata=None, flags=None, rc=None):
-        print("'"  + APP + "' connected to mqtt topic '" + client + "' - soft version:'" + VERSION + "'")
-        print('----------------------------------------------------------------------------'  )
+        print(APP + " V" + VERSION + " connected to mqtt topic " + client + " on " + self.mqtt_ip)
+        print('--------------------------------------------------------------------------'  )
         self.client.subscribe(client)
 
     # This is the message manager
