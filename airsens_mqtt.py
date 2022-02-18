@@ -13,6 +13,7 @@ v0.1.0 : 15.02.2022 --> first prototype
 v0.1.1 : 16.02.2022 --> class created with the program
 """
 VERSION = '0.1.1'
+APP = 'airsens_mqtt'
 
 import paho.mqtt.client as mqtt
 import time
@@ -147,8 +148,8 @@ class AirSens:
 
     # This is the Subscriber
     def on_connect(self, client, userdata=None, flags=None, rc=None):
-        print("airsens -> connected")
-        print('-----------------------------------------'  )
+        print("'"  + APP + "' connected to mqtt topic '" + client + "' - soft version:'" + VERSION + "'")
+        print('----------------------------------------------------------------------------'  )
         self.client.subscribe(client)
 
     # This is the message manager
