@@ -10,8 +10,9 @@ github: https://github.com/jom52/esp32-airsens
 data management for the project airsens esp32-mqtt-mysql
 
 v0.1.0 : 18.02.2022 --> first prototype
+v0.1.1 : 19.02.2022 --> added filtered voltage and delta % of the voltage
 """
-VERSION = '0.1.0'
+VERSION = '0.1.1'
 
 import sys
 import socket
@@ -73,14 +74,15 @@ class AirSensBatGraph:
 
     def plot_air_data(self, local, l_names=None):
         # get data from db
-        x, temp, hum, pres, ubat = self.get_bat_data(local)
-        
-        data = {'Time':x, 'Bat':ubat}
-        # Create DataFrame
+        time_x, temp, hum, pres, ubat = self.get_bat_data(local)
+        data = {'time':time_x, 'bat':ubat}
         df = pd.DataFrame(data)
-        f_bat = df['Bat'].rolling(window =self.filter).mean()
+        
+        f_bat = df['bat'].rolling(window =self.filter).mean()
+        
         d_bat = pd.Series.diff(f_bat)
         d_bat = [b*100 for b in d_bat] # convert values in %
+        data1 = {'time':time_x, 'bat':ubat, 'f_bat':f_bat, 'd_bat':d_bat}
         
         d_max = -1000
         d_min = 1000
@@ -95,35 +97,34 @@ class AirSensBatGraph:
             label_val = local
         
         fig, ax1 = plt.subplots(2, 2)
-          
+        
         # temperature
-        ax1[0, 0].plot(x, temp)
+        ax1[0, 0].plot(time_x, temp)
         ax1[0, 0].set_title("Température")
         ax1[0, 0].grid(True)
           
         # humidity
-        ax1[0, 1].plot(x, hum)
+        ax1[0, 1].plot(time_x, hum)
         ax1[0, 1].set_title("Humidité")
         ax1[0, 1].grid(True)
           
         # air pressure
-        ax1[1, 0].plot(x, pres)
+        ax1[1, 0].plot(time_x, pres)
         ax1[1, 0].set_title("Pression atm.")
         ax1[1, 0].grid(True)
-          
-        # battery voltage
+        
+        # battery voltage , filtered voltage and delta voltage in %
         ax1[1, 1].set_title("Batterie")
         ax1[1, 1].grid(True)
         ax1[1, 1].set_xlabel('Time') 
         ax1[1, 1].set_ylabel('U bat [V]', color = 'blue') 
-        ax1[1, 1].plot(x, ubat, color = 'blue') 
-        ax1[1, 1].tick_params(axis ='y', labelcolor = 'blue') 
-        ax1[1, 1].plot(x, f_bat, color = 'red') 
-
+        ax1[1, 1].plot(time_x, ubat, color = 'blue') 
+        ax1[1, 1].tick_params(axis ='y', labelcolor = 'blue')
+        ax1[1, 1].plot(np.array(time_x), np.array(f_bat), color = 'red')
         ax2 = ax1[1, 1].twinx() 
           
         ax2.set_ylabel('d(bat/dt) [%]', color = 'gray') 
-        ax2.plot(x, d_bat, color = 'gray') 
+        ax2.plot(time_x, d_bat, color = 'gray') 
         ax2.tick_params(axis ='y', labelcolor = 'gray')
         ax2.set_ylim([-d_m, d_m])
           
@@ -132,7 +133,7 @@ class AirSensBatGraph:
         plt.show()        # plot
         
     def main(self):
-#         self.plot_air_data('B9', 'Office')
+#         self.plot_air_data('ex', 'Exterieur')
         locaux = ['sa', 'B9', 'ex']
         l_names = ['Salon', 'Bureau', 'Extérieur']
         for i, local in enumerate(locaux):
