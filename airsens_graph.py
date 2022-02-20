@@ -20,7 +20,6 @@ import socket
 import mysql.connector
 import matplotlib.pyplot as plt
 import pandas as pd
-from scipy.misc import derivative
 import numpy as np
 
 class AirSensBatGraph:
@@ -33,7 +32,7 @@ class AirSensBatGraph:
         self.server_ip = '192.168.1.139'
         self.database_name = 'airsens'
         # graph
-        self.filter = 12*12 # moving average on 5 min * 12 *12 = 12 heures
+        self.filter = 12*6 # moving average on 5 min * 12 *12 = 12 heures
         self.reduce_y2_scale_factor = 5
         
     def get_db_connection(self, db):
@@ -68,9 +67,6 @@ class AirSensBatGraph:
         bat_data = [y[4] for y in data]
         
         return x_data, temp_data, hum_data, pres_data, bat_data
-    
-    def deriv(self, x):
-        return derivative(function, x)
 
 
     def plot_air_data(self, local, l_names=None):
@@ -85,13 +81,13 @@ class AirSensBatGraph:
         d_bat = [b*100 for b in d_bat] # convert values in %
         data1 = {'time':time_x, 'bat':ubat, 'f_bat':f_bat, 'd_bat':d_bat}
         
-#         d_max = -1000
-#         d_min = 1000
-#         for d in d_bat:
-#             if d > d_max : d_max = d
-#             if d < d_min: d_min = d
-#         d_m = max(abs(d_max), abs(d_min)) * self.reduce_y2_scale_factor
-#         
+        d_max = -1000
+        d_min = 1000
+        for d in d_bat:
+            if d > d_max : d_max = d
+            if d < d_min: d_min = d
+        d_m = max(abs(d_max), abs(d_min)) * self.reduce_y2_scale_factor
+        
         if l_names:
             label_val = l_names
         else:
@@ -118,18 +114,23 @@ class AirSensBatGraph:
         ax1[1, 1].set_title("Batterie")
         ax1[1, 1].grid(True)
         ax1[1, 1].set_xlabel('Time') 
-        ax1[1, 1].set_ylabel('U bat [V]', color = 'blue') 
-        ax1[1, 1].plot(time_x, ubat, color = 'blue') 
+        ax1[1, 1].set_ylabel('U bat [V]') 
+        ax1[1, 1].plot(time_x, ubat)
+#         ax1[1, 1].legend(['U bat'], loc='upper left',)
+        
         ax1[1, 1].tick_params(axis ='y', labelcolor = 'blue')
         ax1[1, 1].plot(np.array(time_x), np.array(f_bat), color = 'red')
+        ax1[1, 1].legend(['U bat', 'U bat filtered over ' + str(int(self.filter/12)) + ' hours'], loc='lower left')
+        
         ax2 = ax1[1, 1].twinx() 
-          
         ax2.set_ylabel('d(bat/dt) [%]', color = 'gray') 
         ax2.plot(time_x, d_bat, color = 'gray') 
         ax2.tick_params(axis ='y', labelcolor = 'gray')
-        if d_bat:
-            d_m = max([abs(max(d_bat)), abs(min(d_bat))])
-            if not pd.isna(d_m) : ax2.set_ylim([-d_m, d_m])
+        ax2.legend(['delta ubat filtered %'], loc='upper right')
+#         if d_bat:
+#             d_m = max([abs(max(d_bat)), abs(min(d_bat))])
+#             if not pd.isna(d_m) : ax2.set_ylim([-d_m, d_m])
+        ax2.set_ylim([-d_m, d_m])
           
         # Combine all the operations and display
         fig.suptitle(label_val)
@@ -137,7 +138,7 @@ class AirSensBatGraph:
         
     def main(self):
         print('runing airsen_graph V' + VERSION)
-#         self.plot_air_data('ex', 'Exterieur')
+#         self.plot_air_data('bu', 'Bureau')
         locaux = ['sa', 'bu', 'ex']
         l_names = ['Salon', 'Bureau', 'Extérieur']
         for i, local in enumerate(locaux):
