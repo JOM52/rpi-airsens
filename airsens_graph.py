@@ -12,8 +12,10 @@ data management for the project airsens esp32-mqtt-mysql
 v0.1.0 : 18.02.2022 --> first prototype
 v0.1.1 : 19.02.2022 --> added filtered voltage and delta % of the voltage
 v0.1.2 : 19.02.2022 --> changed the calculation of d_bar scale (d_m)
+v0.1.3 : 21.02.2022 --> grid for bat uniform for the 2 axes
 """
-VERSION = '0.1.2'
+VERSION_NO = '0.1.3'
+PROGRAMM_NAME = 'airsens_graph.py'
 
 import sys
 import socket
@@ -33,7 +35,7 @@ class AirSensBatGraph:
         self.database_name = 'airsens'
         # graph
         self.filter = 12*6 # moving average on 5 min * 12 *12 = 12 heures
-        self.reduce_y2_scale_factor = 5
+        self.reduce_y2_scale_factor = 2.5
         
     def get_db_connection(self, db):
         # get the local IP adress
@@ -96,48 +98,69 @@ class AirSensBatGraph:
         fig, ax1 = plt.subplots(2, 2)
         
         # temperature
-        ax1[0, 0].plot(time_x, temp)
+        
+        ax1[0, 0].tick_params(labelrotation=45)
+        ax1[0, 0].set_ylabel('[°C]') 
         ax1[0, 0].set_title("Température")
         ax1[0, 0].grid(True)
+        ax1[0, 0].plot(time_x, temp)
           
         # humidity
-        ax1[0, 1].plot(time_x, hum)
+        ax1[0, 1].tick_params(labelrotation=45)
+        ax1[0, 1].set_ylabel('[%]') 
         ax1[0, 1].set_title("Humidité")
         ax1[0, 1].grid(True)
+        ax1[0, 1].plot(time_x, hum)
           
         # air pressure
-        ax1[1, 0].plot(time_x, pres)
+        ax1[1, 0].tick_params(labelrotation=45)
+        ax1[1, 0].set_ylabel('[hPa]') 
         ax1[1, 0].set_title("Pression atm.")
         ax1[1, 0].grid(True)
+        ax1[1, 0].plot(time_x, pres)
         
         # battery voltage , filtered voltage and delta voltage in %
-        ax1[1, 1].set_title("Batterie")
+        ax1[1, 1].tick_params(labelrotation=45)
+        ax1[1, 1].set_ylabel('[V]') 
+        ax1[1, 1].set_title("Tension batterie")
         ax1[1, 1].grid(True)
-        ax1[1, 1].set_xlabel('Time') 
-        ax1[1, 1].set_ylabel('U bat [V]') 
         ax1[1, 1].plot(time_x, ubat)
 #         ax1[1, 1].legend(['U bat'], loc='upper left',)
         
-        ax1[1, 1].tick_params(axis ='y', labelcolor = 'blue')
+#         ax1[1, 1].tick_params(axis ='y', labelcolor = 'blue')
         ax1[1, 1].plot(np.array(time_x), np.array(f_bat), color = 'red')
         ax1[1, 1].legend(['U bat', 'U bat filtered over ' + str(int(self.filter/12)) + ' hours'], loc='lower left')
         
+        ax2_color = 'sienna'
         ax2 = ax1[1, 1].twinx() 
-        ax2.set_ylabel('d(bat/dt) [%]', color = 'gray') 
-        ax2.plot(time_x, d_bat, color = 'gray') 
-        ax2.tick_params(axis ='y', labelcolor = 'gray')
+        ax2.tick_params(labelrotation=45)
+        ax2.set_ylabel('d(bat/dt) [%]', color = ax2_color) 
+        ax2.plot(time_x, d_bat, color = ax2_color) 
+        ax2.tick_params(axis ='y', labelcolor = ax2_color)
         ax2.legend(['delta ubat filtered %'], loc='upper right')
 #         if d_bat:
 #             d_m = max([abs(max(d_bat)), abs(min(d_bat))])
 #             if not pd.isna(d_m) : ax2.set_ylim([-d_m, d_m])
+
         ax2.set_ylim([-d_m, d_m])
+#         ax2.grid(True, color=ax2_color, linewidth=0.5, linestyle='-.')
           
         # Combine all the operations and display
-        fig.suptitle(label_val)
+#         fig.tight_layout()
+        fig.suptitle(label_val.upper()  + ' [' + PROGRAMM_NAME + ' version:' + VERSION_NO + ']')
+        plt.subplots_adjust(left=0.1,
+                            bottom=0.1, 
+                            right=0.9, 
+                            top=0.9, 
+                            wspace=0.2, 
+                            hspace=0.4)
+        plt.xticks(rotation=30)
+        ax1[1, 1].set_yticks(np.linspace(ax1[1, 1].get_yticks()[0], ax1[1, 1].get_yticks()[-1], len(ax1[1, 1].get_yticks())))
+        ax2.set_yticks(np.linspace(ax2.get_yticks()[0], ax2.get_yticks()[-1], len(ax1[1, 1].get_yticks())))
         plt.show()        # plot
         
     def main(self):
-        print('runing airsen_graph V' + VERSION)
+        print('runing airsen_graph V' + VERSION_NO)
 #         self.plot_air_data('bu', 'Bureau')
         locaux = ['sa', 'bu', 'ex']
         l_names = ['Salon', 'Bureau', 'Extérieur']
