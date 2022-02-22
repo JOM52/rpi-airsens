@@ -166,10 +166,14 @@ class AirSens:
             str_now, str_elapsed, charge_bat = self.record_data_in_db(rx_msg)
             # display the status for the sensor on battery
             if local == 'bu' or local == 'ex' or local == 'sa' or local == 'B9':
+                if local == 'sa' : local_name = 'Salon :'
+                elif local == 'bu': local_name = 'Bureau:'
+                elif local == 'ex': local_name = 'Ext.  :'
                 # build the message
-                msg = 'room:' + local + ' - temp:' + '{:.1f}'.format(temp) + '°C - hum:' + '{:.0f}'.format(hum)
-                msg += '% - pres:' + '{:.0f}'.format(pres) + 'hPa - bat:' + '{:.2f}'.format(ubat) + 'V'
-                msg += ' - battery load:' + '{:.1f}'.format(charge_bat) + '%'
+                '{:0>9}'.format
+                msg = 'room:' + local + ' - temp:' + '{:4.1f}'.format(temp) + '°C - hum:' + '{:2.0f}'.format(hum)
+                msg += '% - pres:' + '{:3.0f}'.format(pres) + 'hPa - bat:' + '{:4.2f}'.format(ubat) + 'V'
+                msg += ' - ' + local_name.upper() + ' - battery load:' + '{:4.1f}'.format(charge_bat) + '%'
                 msg += ' - battery life(j-h:m):' + str_elapsed
                 msg += ' - measurement time:' + str_now
                 print(msg)
@@ -182,10 +186,10 @@ class AirSens:
             else:
                 # just print the received values
                 print('room:' + local
-                      + ' - temp:' + '{:.1f}'.format(temp) + '°C'
-                      + ' - hum:' + '{:.0f}'.format(hum) + '%'
-                      + ' - pres:' + '{:.0f}'.format(pres) + 'hPa'
-                      + ' - bat:' + '{:.2f}'.format(ubat) + 'V')
+                      + ' - temp:' + '{:4.1f}'.format(temp) + '°C'
+                      + ' - hum:' + '{:2.0f}'.format(hum) + '%'
+                      + ' - pres:' + '{:3.0f}'.format(pres) + 'hPa'
+                      + ' - bat:' + '{:4.2f}'.format(ubat) + 'V')
 
     def main(self):
         # connect on the mqtt client
