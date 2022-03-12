@@ -24,27 +24,55 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+
+def decode_msg(msg):
+    # msg example: 'jmb10+2225599944476'
+    jmb_id = msg[0:3]
+    piece = msg[3:5]
+    temp = int(msg[6:9]) / 10
+    hum = int(msg[9:11])
+    pres = int(msg[11:14])
+    ubat = int(msg[14:17]) / 100
+    rx_crc = msg[17:19]
+    return jmb_id, piece, temp, hum, pres, ubat, rx_crc
+
+
+def crc(msg):
+    # calculate the crc of msg
+    crc_0 = 0
+    crc_1 = 0
+    for i, char in enumerate(msg):
+        if (i % 2) == 0:
+            crc_0 += ord(char)
+        else:
+            crc_1 += ord(char)
+    v_crc = crc_0 + crc_1 * 3
+    if v_crc < 10:
+        v_crc *= 10
+    return str(v_crc)[-2:]
+
+
 class AirSens:
-    
+
     def __init__(self):
         # battery
-        self.UBAT_100 = 4.2
+        self.UBAT_100 = 4.1
         self.UBAT_0 = 3.5
         # database
-        self.database_username = "pi"  # YOUR MYSQL USERNAME, USUALLY ROOT
+        self.database_username = "root"  # YOUR MYSQL USERNAME, USUALLY ROOT
         self.database_password = "mablonde"  # YOUR MYSQL PASSWORD
         self.host_name = "localhost"
-        self.server_ip = '192.168.1.139'
+        self.server_ip = '192.168.1.123'
         self.database_name = 'airsens'
         # email
         self.sender_address = 'esp32jmb@gmail.com'
         self.sender_pass = 'mablonde'
         self.receiver_address = 'jmetra@outlook.com'
         # mqtt
-        self.mqtt_ip = "192.168.1.108"
+        self.mqtt_ip = '192.168.1.123'
         self.client = None
         self.mqtt_client = "airsens_test"
-        
+
     def get_db_connection(self, db):
         # get the local IP adress
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -53,62 +81,40 @@ class AirSens:
         s.close()
         # verify if the mysql server is ok and the db avaliable
         try:
-            if local_ip == self.server_ip: # if we are on the RPI with mysql server (RPI making temp acquis)
+            if local_ip == self.server_ip:  # if we are on the RPI with mysql server (RPI making temp acquis)
                 # test the local database connection
-                con = mysql.connector.connect(user=self.database_username, password=self.database_password, host=self.host_name, database=db)
+                con = mysql.connector.connect(user=self.database_username, password=self.database_password,
+                                              host=self.host_name, database=db)
             else:
                 # test the distant database connection
-                con = mysql.connector.connect(user=self.database_username, password=self.database_password, host=self.server_ip, database=db)
+                con = mysql.connector.connect(user=self.database_username, password=self.database_password,
+                                              host=self.server_ip, database=db)
             return con, sys.exc_info()
         except:
             return False, sys.exc_info()
 
     def send_email(self, title, msg):
-        #Setup the MIME
+        # Setup the MIME
         message = MIMEMultipart()
         message['From'] = self.sender_address
         message['To'] = self.receiver_address
         message['Subject'] = title
-        #The body and the attachments for the mail
+        # The body and the attachments for the mail
         message.attach(MIMEText(msg, 'plain'))
-        #Create SMTP session for sending the mail
-        session = smtplib.SMTP('smtp.gmail.com', 587) #use gmail with port
-        session.starttls() #enable security
-        session.login(self.sender_address, self.sender_pass) #login with mail_id and password
+        # Create SMTP session for sending the mail
+        session = smtplib.SMTP('smtp.gmail.com', 587)  # use gmail with port
+        session.starttls()  # enable security
+        session.login(self.sender_address, self.sender_pass)  # login with mail_id and password
         text = message.as_string()
         session.sendmail(self.sender_address, self.receiver_address, text)
         session.quit()
         print('Mail Sent')
 
-    def decode_msg(self, msg):
-        # msg example: 'jmb10+2225599944476'
-        jmb_id = msg[0:3]
-        piece = msg[3:5]
-        temp = int(msg[6:9])/10
-        hum = int(msg[9:11])
-        pres = int(msg[11:14])
-        ubat = int(msg[14:17])/100
-        rx_crc = msg[17:19]
-        return jmb_id, piece, temp, hum, pres, ubat, rx_crc
-
-    def crc(self, msg):
-        # calculate the crc of msg
-        crc_0 = 0
-        crc_1 = 0
-        for i, char in enumerate(msg):
-            if (i %2) == 0:
-                crc_0 += ord(char)
-            else:
-                crc_1 += ord(char)
-        v_crc = crc_0 + crc_1 * 3
-        if v_crc < 10 : v_crc *= 10
-        return str(v_crc)[-2:]
-        
     def record_data_in_db(self, rx_msg):
         # decode the rx_msg
-        _, local, temp, hum, pres, ubat, __ = self.decode_msg(rx_msg)
+        _, local, temp, hum, pres, ubat, __ = decode_msg(rx_msg)
         # calculate % battery charge
-        charge_bat = (float(ubat) - self.UBAT_0) / ((self.UBAT_100 - self.UBAT_0)/100)
+        charge_bat = (float(ubat) - self.UBAT_0) / ((self.UBAT_100 - self.UBAT_0) / 100)
         # insert the values in the db
         sql_txt = "".join(["INSERT INTO airsens (local, temp, hum, pres, ubat, charge_bat) VALUES ('",
                            local, "',",
@@ -141,7 +147,6 @@ class AirSens:
         elapsed %= 3600
         m = elapsed // 60
         elapsed %= 60
-        s = elapsed
         str_elapsed = '{:02d}'.format(int(d)) + '-' + '{:02d}'.format(int(h)) + ':' + '{:02d}'.format(int(m))
         # return the calculate values
         return str_now, str_elapsed, charge_bat
@@ -149,7 +154,7 @@ class AirSens:
     # This is the Subscriber
     def on_connect(self, client, userdata=None, flags=None, rc=None):
         print(APP + " V" + VERSION + " connected to mqtt topic " + client + " on " + self.mqtt_ip)
-        print('--------------------------------------------------------------------------'  )
+        print('--------------------------------------------------------------------------')
         self.client.subscribe(client)
 
     # This is the message manager
@@ -158,52 +163,58 @@ class AirSens:
         rx_msg = msg.payload.decode()
         # check the rx and calculate crc
         rx_crc = rx_msg[-2:]
-        ctrl_crc = self.crc(rx_msg[:-2])
+        ctrl_crc = crc(rx_msg[:-2])
         if rx_crc == ctrl_crc:
             # decode the msg
-            idx, local, temp, hum, pres, ubat, crc_v = self.decode_msg(rx_msg)
+            idx, local, temp, hum, pres, ubat, crc_v = decode_msg(rx_msg)
             # save the data in the db and get time, battery life and battery charge
             str_now, str_elapsed, charge_bat = self.record_data_in_db(rx_msg)
             # display the status for the sensor on battery
-            if local == 'bu' or local == 'ex' or local == 'sa' or local == 'B9':
-                if local == 'sa' : local_name = 'Salon :'
-                elif local == 'bu': local_name = 'Bureau:'
-                elif local == 'ex': local_name = 'Ext.  :'
+            if local == 'bu' or local == 'ex' or local == 'sa' or local == 'p0':
+                str_now = time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())
+                if local == 'sa':
+                    local_name = 'Salon :'
+                elif local == 'bu':
+                    local_name = 'Bureau:'
+                elif local == 'ex':
+                    local_name = 'Ext.  :'
+                elif local == 'p0':
+                    local_name = 'Proto :'
                 # build the message
-                '{:0>9}'.format
-                msg = 'room:' + local + ' - temp:' + '{:4.1f}'.format(temp) + '°C - hum:' + '{:2.0f}'.format(hum)
+                # '{:0>9}'.format
+                msg = local + ' - temp:' + '{:4.1f}'.format(temp) + '°C - hum:' + '{:2.0f}'.format(hum)
                 msg += '% - pres:' + '{:3.0f}'.format(pres) + 'hPa - bat:' + '{:4.2f}'.format(ubat) + 'V'
                 msg += ' - ' + local_name.upper() + ' - battery load:' + '{:4.1f}'.format(charge_bat) + '%'
                 msg += ' - battery life(j-h:m):' + str_elapsed
-                msg += ' - measurement time:' + str_now
+                msg += ' - ' + str_now
                 print(msg)
                 # check if the battery voltage is ok and send email if too low
                 if float(ubat) < self.UBAT_0:
-                    title = local  + ' --> time to recharge battery, tension = ' + str(ubat) + ' [V]'
+                    title = local + ' --> time to recharge battery, tension = ' + str(ubat) + ' [V]'
                     print(title)
                     print('---------------------------------------------')
                     self.send_email(title, msg)
             else:
                 # just print the received values
-                print('room:' + local
+                print(local
                       + ' - temp:' + '{:4.1f}'.format(temp) + '°C'
                       + ' - hum:' + '{:2.0f}'.format(hum) + '%'
                       + ' - pres:' + '{:3.0f}'.format(pres) + 'hPa'
-                      + ' - bat:' + '{:4.2f}'.format(ubat) + 'V')
-
+                      + ' - bat:' + '{:4.2f}'.format(ubat) + 'V'
+                      + ' - ' + str_now)
     def main(self):
         # connect on the mqtt client
         self.client = mqtt.Client()
-        self.client.connect(self.mqtt_ip,1883,60)
+        self.client.connect(self.mqtt_ip, 1883, 60)
         # mqtt interrup procedures
         self.client.on_connect = self.on_connect(self.mqtt_client)
         self.client.on_message = self.on_message
         # loop for ever
         self.client.loop_forever()
-        
+
+
 if __name__ == '__main__':
     # instatiate the class
     airsens = AirSens()
     # run main
     airsens.main()
- 

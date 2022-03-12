@@ -15,9 +15,6 @@ v0.1.2 : 19.02.2022 --> changed the calculation of d_bar scale (d_m)
 v0.1.3 : 21.02.2022 --> grid for bat uniform for the 2 axes
 v0.1.4 : 23.02.2022	--> adjusted the size of the graph the the whole screen
 """
-VERSION_NO = '0.1.4'
-PROGRAMM_NAME = 'airsens_graph.py'
-
 import sys
 import socket
 import mysql.connector
@@ -26,19 +23,23 @@ import pandas as pd
 import numpy as np
 import pyautogui
 
+VERSION_NO = '0.1.4'
+PROGRAM_NAME = 'airsens_graph.py'
+
+
 class AirSensBatGraph:
-    
+
     def __init__(self):
         # database
-        self.database_username = "pi"  # YOUR MYSQL USERNAME, USUALLY ROOT
+        self.database_username = "root"  # YOUR MYSQL USERNAME, USUALLY ROOT
         self.database_password = "mablonde"  # YOUR MYSQL PASSWORD
         self.host_name = "localhost"
-        self.server_ip = '192.168.1.139'
+        self.server_ip = '192.168.1.123'
         self.database_name = 'airsens'
         # graph
-        self.filter = 12*6 # moving average on 5 min * 12 *12 = 12 heures
+        self.filter = 12 * 6  # moving average on 5 min * 12 *12 = 12 heures
         self.reduce_y2_scale_factor = 2.5
-        
+
     def get_db_connection(self, db):
         # get the local IP adress
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -47,18 +48,20 @@ class AirSensBatGraph:
         s.close()
         # verify if the mysql server is ok and the db avaliable
         try:
-            if local_ip == self.server_ip: # if we are on the RPI with mysql server (RPI making temp acquis)
+            if local_ip == self.server_ip:  # if we are on the RPI with mysql server (RPI making temp acquis)
                 # test the local database connection
-                con = mysql.connector.connect(user=self.database_username, password=self.database_password, host=self.host_name, database=db)
+                con = mysql.connector.connect(user=self.database_username, password=self.database_password,
+                                              host=self.host_name, database=db)
             else:
                 # test the distant database connection
-                con = mysql.connector.connect(user=self.database_username, password=self.database_password, host=self.server_ip, database=db)
+                con = mysql.connector.connect(user=self.database_username, password=self.database_password,
+                                              host=self.server_ip, database=db)
             return con, sys.exc_info()
         except:
             return False, sys.exc_info()
 
     def get_bat_data(self, local):
-        
+
         db_connection, err = self.get_db_connection(self.database_name)
         db_cursor = db_connection.cursor()
         sql_txt = "SELECT time_stamp, temp, hum, pres, ubat FROM airsens WHERE local = '" + local + "';"
@@ -69,122 +72,122 @@ class AirSensBatGraph:
         hum_data = [y[2] for y in data]
         pres_data = [y[3] for y in data]
         bat_data = [y[4] for y in data]
-        
-        return x_data, temp_data, hum_data, pres_data, bat_data
 
+        return x_data, temp_data, hum_data, pres_data, bat_data
 
     def plot_air_data(self, local, l_names=None):
         # get data from db
         time_x, temp, hum, pres, ubat = self.get_bat_data(local)
-        data = {'time':time_x, 'bat':ubat}
+        data = {'time': time_x, 'bat': ubat}
         df = pd.DataFrame(data)
-        
-        f_bat = df['bat'].rolling(window =self.filter).mean()
-        
+
+        f_bat = df['bat'].rolling(window=self.filter).mean()
+
         d_bat = pd.Series.diff(f_bat)
-        d_bat = [b*100 for b in d_bat] # convert values in %
-        data1 = {'time':time_x, 'bat':ubat, 'f_bat':f_bat, 'd_bat':d_bat}
-        
+        d_bat = [b * 100 for b in d_bat]  # convert values in %
+        data1 = {'time': time_x, 'bat': ubat, 'f_bat': f_bat, 'd_bat': d_bat}
+
         d_max = -1000
         d_min = 1000
         for d in d_bat:
-            if d > d_max : d_max = d
+            if d > d_max: d_max = d
             if d < d_min: d_min = d
         d_m = max(abs(d_max), abs(d_min)) * self.reduce_y2_scale_factor
-        
+
         if l_names:
             label_val = l_names
         else:
             label_val = local
-        
+
         fig, ax1 = plt.subplots(2, 2)
 
         # adjust the size of the graph to the screen
         screen_dpi = 90
-        width, height= pyautogui.size()
-        fig.set_figheight(height/screen_dpi)
-        fig.set_figwidth(width/screen_dpi)
-        
+        width, height = pyautogui.size()
+        fig.set_figheight(height / screen_dpi)
+        fig.set_figwidth(width / screen_dpi)
+
         # temperature
-        
+
         ax1[0, 0].tick_params(labelrotation=45)
-        ax1[0, 0].set_ylabel('[°C]') 
+        ax1[0, 0].set_ylabel('[°C]')
         ax1[0, 0].set_title("Température")
         ax1[0, 0].grid(True)
         ax1[0, 0].plot(time_x, temp)
-          
+
         # humidity
         ax1[0, 1].tick_params(labelrotation=45)
-        ax1[0, 1].set_ylabel('[%]') 
+        ax1[0, 1].set_ylabel('[%]')
         ax1[0, 1].set_title("Humidité")
         ax1[0, 1].grid(True)
         ax1[0, 1].plot(time_x, hum)
-          
+
         # air pressure
         ax1[1, 0].tick_params(labelrotation=45)
-        ax1[1, 0].set_ylabel('[hPa]') 
+        ax1[1, 0].set_ylabel('[hPa]')
         ax1[1, 0].set_title("Pression atm.")
         ax1[1, 0].grid(True)
         ax1[1, 0].plot(time_x, pres)
-        
+
         # battery voltage , filtered voltage and delta voltage in %
         ax1[1, 1].tick_params(labelrotation=45)
-        ax1[1, 1].set_ylabel('[V]') 
+        ax1[1, 1].set_ylabel('[V]')
         ax1[1, 1].set_title("Tension batterie")
         ax1[1, 1].grid(True)
         ax1[1, 1].plot(time_x, ubat)
-#         ax1[1, 1].legend(['U bat'], loc='upper left',)
-        
-#         ax1[1, 1].tick_params(axis ='y', labelcolor = 'blue')
-        ax1[1, 1].plot(np.array(time_x), np.array(f_bat), color = 'red')
-        ax1[1, 1].legend(['U bat', 'U bat filtered over ' + str(int(self.filter/12)) + ' hours'], loc='lower left')
-        
-#         make_ax2 = False
-#         for d in d_bat:
-#             if str(d).isnumeric():
-#                 make_ax2 = True
-                
+        #         ax1[1, 1].legend(['U bat'], loc='upper left',)
+
+        #         ax1[1, 1].tick_params(axis ='y', labelcolor = 'blue')
+        ax1[1, 1].plot(np.array(time_x), np.array(f_bat), color='red')
+        ax1[1, 1].legend(['U bat', 'U bat filtered over ' + str(int(self.filter / 12)) + ' hours'], loc='lower left')
+
+        #         make_ax2 = False
+        #         for d in d_bat:
+        #             if str(d).isnumeric():
+        #                 make_ax2 = True
+
         make_ax2 = True
         if make_ax2:
             ax2_color = 'sienna'
-            ax2 = ax1[1, 1].twinx() 
+            ax2 = ax1[1, 1].twinx()
             ax2.tick_params(labelrotation=45)
-            ax2.set_ylabel('d(bat/dt) [%]', color = ax2_color) 
-            ax2.plot(time_x, d_bat, color = ax2_color) 
-            ax2.tick_params(axis ='y', labelcolor = ax2_color)
+            ax2.set_ylabel('d(bat/dt) [%]', color=ax2_color)
+            ax2.plot(time_x, d_bat, color=ax2_color)
+            ax2.tick_params(axis='y', labelcolor=ax2_color)
             ax2.legend(['delta ubat filtered %'], loc='upper right')
             ax2.set_ylim([-d_m, d_m])
-          
+
         # Combine all the operations and display
-        fig.suptitle(label_val.upper()  + ' [' + PROGRAMM_NAME + ' version:' + VERSION_NO + ']')
+        fig.suptitle(label_val.upper() + ' [' + PROGRAM_NAME + ' version:' + VERSION_NO + ']')
         plt.subplots_adjust(left=0.1,
-                            bottom=0.1, 
-                            right=0.9, 
-                            top=0.9, 
-                            wspace=0.2, 
+                            bottom=0.1,
+                            right=0.9,
+                            top=0.9,
+                            wspace=0.2,
                             hspace=0.4)
         plt.xticks(rotation=30)
-        ax1[1, 1].set_yticks(np.linspace(ax1[1, 1].get_yticks()[0], ax1[1, 1].get_yticks()[-1], len(ax1[1, 1].get_yticks())))
+        ax1[1, 1].set_yticks(
+            np.linspace(ax1[1, 1].get_yticks()[0], ax1[1, 1].get_yticks()[-1], len(ax1[1, 1].get_yticks())))
         if make_ax2:
             ax2.set_yticks(np.linspace(ax2.get_yticks()[0], ax2.get_yticks()[-1], len(ax1[1, 1].get_yticks())))
         ax2.set_yticks(np.linspace(ax2.get_yticks()[0], ax2.get_yticks()[-1], len(ax1[1, 1].get_yticks())))
 
-#         manager = plt.get_current_fig_manager()
-#         manager.full_screen_toggle()
+        #         manager = plt.get_current_fig_manager()
+        #         manager.full_screen_toggle()
 
-        plt.show()        # plot
-        
+        plt.show()  # plot
+
     def main(self):
         print('runing airsen_graph V' + VERSION_NO)
-#         self.plot_air_data('bu', 'Bureau')
-        locaux = ['sa', 'bu', 'ex']
-        l_names = ['Salon', 'Bureau', 'Extérieur']
+        #         self.plot_air_data('bu', 'Bureau')
+        locaux = ['sa', 'p0', 'ex']
+        l_names = ['Salon', 'Proto', 'Extérieur']
         for i, local in enumerate(locaux):
             self.plot_air_data(local, l_names[i])
-        
+
+
 if __name__ == '__main__':
-    # instatiate the class
+    # instantiate the class
     airsens_bat_graph = AirSensBatGraph()
     # run main
     airsens_bat_graph.main()
- 
