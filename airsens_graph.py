@@ -164,8 +164,9 @@ class AirSensBatGraph:
 #         self.plot_air_data('bu', 'Bureau')
         locaux = ['sa', 'bu', 'ex']
         l_names = ['Salon', 'Bureau', 'Extérieur']
-        for i, local in enumerate(locaux):
-            self.plot_air_data(local, l_names[i])
+#         for i, local in enumerate(locaux):
+#             self.plot_air_data(local, l_names[i])
+        self.plot_air_data('ex', 'Extérieur')
         
 if __name__ == '__main__':
     # instatiate the class

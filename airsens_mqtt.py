@@ -29,7 +29,7 @@ class AirSens:
     def __init__(self):
         # battery
         self.UBAT_100 = 4.2
-        self.UBAT_0 = 3.5
+        self.UBAT_0 = 2.5
         # database
         self.database_username = "pi"  # YOUR MYSQL USERNAME, USUALLY ROOT
         self.database_password = "mablonde"  # YOUR MYSQL PASSWORD
@@ -38,7 +38,7 @@ class AirSens:
         self.database_name = 'airsens'
         # email
         self.sender_address = 'esp32jmb@gmail.com'
-        self.sender_pass = 'mablonde'
+        self.sender_pass = 'wasjpwyjenoliobz'
         self.receiver_address = 'jmetra@outlook.com'
         # mqtt
         self.mqtt_ip = "192.168.1.108"
@@ -170,7 +170,7 @@ class AirSens:
                 elif local == 'bu': local_name = 'Bureau:'
                 elif local == 'ex': local_name = 'Ext.  :'
                 # build the message
-                '{:0>9}'.format
+#                 '{:0>9}'.format
                 msg = 'room:' + local + ' - temp:' + '{:4.1f}'.format(temp) + '°C - hum:' + '{:2.0f}'.format(hum)
                 msg += '% - pres:' + '{:3.0f}'.format(pres) + 'hPa - bat:' + '{:4.2f}'.format(ubat) + 'V'
                 msg += ' - ' + local_name.upper() + ' - battery load:' + '{:4.1f}'.format(charge_bat) + '%'
