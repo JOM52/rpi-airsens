@@ -134,24 +134,25 @@ class AirSensBatGraph:
         ax1[1, 1].set_ylabel('[V]')
         ax1[1, 1].set_title("Tension batterie")
         ax1[1, 1].grid(True)
-        ax1[1, 1].plot(time_x, ubat)
+        ax1[1, 1].plot(time_x, ubat, color='lightsteelblue', zorder=0)
         #         ax1[1, 1].legend(['U bat'], loc='upper left',)
 
         #         ax1[1, 1].tick_params(axis ='y', labelcolor = 'blue')
-        ax1[1, 1].plot(np.array(time_x), np.array(f_bat), color='red')
-        ax1[1, 1].legend(['U bat', 'U bat filtered over ' + str(int(self.filter / 12)) + ' hours'], loc='lower left')
+        ax1[1, 1].plot(np.array(time_x), np.array(f_bat), color='red', zorder=5)
+        ax1[1, 1].legend(['U bat', 'U bat filtered over ' + str(int(self.filter / 12)) + ' measures'], loc='lower left')
 
         #         make_ax2 = False
         #         for d in d_bat:
         #             if str(d).isnumeric():
         #                 make_ax2 = True
 
-        make_ax2 = True
+        # temporary not display the d(bat/dt) trace
+        make_ax2 = False
         if make_ax2:
-            ax2_color = 'sienna'
+            ax2_color = 'wheat' #'sienna'
             ax2 = ax1[1, 1].twinx()
             ax2.tick_params(labelrotation=45)
-            ax2.set_ylabel('d(bat/dt) [%]', color=ax2_color)
+            ax2.set_ylabel('d(bat/dt) [%]', color=ax2_color, zorder=10)
             ax2.plot(time_x, d_bat, color=ax2_color)
             ax2.tick_params(axis='y', labelcolor=ax2_color)
             ax2.legend(['delta ubat filtered %'], loc='upper right')
@@ -170,7 +171,7 @@ class AirSensBatGraph:
             np.linspace(ax1[1, 1].get_yticks()[0], ax1[1, 1].get_yticks()[-1], len(ax1[1, 1].get_yticks())))
         if make_ax2:
             ax2.set_yticks(np.linspace(ax2.get_yticks()[0], ax2.get_yticks()[-1], len(ax1[1, 1].get_yticks())))
-        ax2.set_yticks(np.linspace(ax2.get_yticks()[0], ax2.get_yticks()[-1], len(ax1[1, 1].get_yticks())))
+#             ax2.set_yticks(np.linspace(ax2.get_yticks()[0], ax2.get_yticks()[-1], len(ax1[1, 1].get_yticks())))
 
         #         manager = plt.get_current_fig_manager()
         #         manager.full_screen_toggle()
