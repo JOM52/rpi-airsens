@@ -11,6 +11,8 @@ data management for the project airsens esp32-mqtt-mysql
 
 v0.1.0 : 15.02.2022 --> first prototype
 v0.1.1 : 16.02.2022 --> class created with the program
+v0.1.2 : 01.06.2022 --> modified to limit number of mail send to 1
+v0.1.3 : 01.06.2022 --> added proto-2
 """
 VERSION = '0.1.1'
 APP = 'airsens_mqtt'
@@ -56,8 +58,8 @@ class AirSens:
 
     def __init__(self):
         # battery
-        self.UBAT_100 = 4.2
-        self.UBAT_0 = 2.5
+        self.UBAT_100 = 3.0
+        self.UBAT_0 = 2.0
         # database
         self.database_username = "pi"  # YOUR MYSQL USERNAME, USUALLY ROOT
         self.database_password = "mablonde"  # YOUR MYSQL PASSWORD
@@ -68,6 +70,7 @@ class AirSens:
         self.sender_address = 'esp32jmb@gmail.com'
         self.sender_pass = 'wasjpwyjenoliobz'
         self.receiver_address = 'jmetra@outlook.com'
+        self.mail_send = False
         # mqtt
         self.mqtt_ip = '192.168.1.108'
         self.client = None
@@ -114,7 +117,7 @@ class AirSens:
         # decode the rx_msg
         _, local, temp, hum, pres, ubat, __ = decode_msg(rx_msg)
         # calculate % battery charge
-        charge_bat = (float(ubat) - self.UBAT_0) / ((self.UBAT_100 - self.UBAT_0) / 100)
+        charge_bat = '{:4.1f}'.format((float(ubat) - self.UBAT_0) / ((self.UBAT_100 - self.UBAT_0) / 100))
         # insert the values in the db
         sql_txt = "".join(["INSERT INTO airsens (local, temp, hum, pres, ubat, charge_bat) VALUES ('",
                            local, "',",
@@ -170,7 +173,7 @@ class AirSens:
             # save the data in the db and get time, battery life and battery charge
             str_now, str_elapsed, charge_bat = self.record_data_in_db(rx_msg)
             # display the status for the sensor on battery
-            if local == 'bu' or local == 'ex' or local == 'sa' or local == 'p0':
+            if local == 'bu' or local == 'ex' or local == 'sa' or local == 'p0' or local == 'p2':
                 str_now = time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())
                 if local == 'sa':
                     local_name = 'Salon :'
@@ -179,20 +182,23 @@ class AirSens:
                 elif local == 'ex':
                     local_name = 'Ext.  :'
                 elif local == 'p0':
-                    local_name = 'Proto :'
+                    local_name = 'Proto-0 :'
+                elif local == 'p2':
+                    local_name = 'Proto-2 :'
                 # build the message
                 msg = local + ' - temp:' + '{:4.1f}'.format(temp) + '°C - hum:' + '{:2.0f}'.format(hum)
                 msg += '% - pres:' + '{:3.0f}'.format(pres) + 'hPa - bat:' + '{:4.2f}'.format(ubat) + 'V'
-                msg += ' - ' + local_name.upper() + ' - battery load:' + '{:4.1f}'.format(charge_bat) + '%'
+                msg += ' - ' + local_name.upper() + ' - battery load:' + charge_bat + '%'
                 msg += ' - battery life(j-h:m):' + str_elapsed
                 msg += ' - ' + str_now
                 print(msg)
                 # check if the battery voltage is ok and send email if too low
-                if float(ubat) < self.UBAT_0:
+                if float(ubat) < self.UBAT_0 and not self.mail_send:
                     title = local + ' --> time to recharge battery, tension = ' + str(ubat) + ' [V]'
                     print(title)
                     print('---------------------------------------------')
                     self.send_email(title, msg)
+                    self.mail_send = True
             else:
                 # just print the received values
                 print(local

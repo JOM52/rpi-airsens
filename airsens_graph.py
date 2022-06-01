@@ -180,11 +180,12 @@ class AirSensBatGraph:
     def main(self):
         print('runing airsen_graph V' + VERSION_NO)
 #         self.plot_air_data('bu', 'Bureau')
-        locaux = ['sa', 'bu', 'ex']
-        l_names = ['Salon', 'Bureau', 'Extérieur']
+#         locaux = ['sa', 'bu', 'ex']
+#         l_names = ['Salon', 'Bureau', 'Extérieur']
 #         for i, local in enumerate(locaux):
 #             self.plot_air_data(local, l_names[i])
-        self.plot_air_data('ex', 'Extérieur')
+#         self.plot_air_data('ex', 'Extérieur')
+        self.plot_air_data('p2', 'Prototype')
         
         #         self.plot_air_data('bu', 'Bureau')
 #         locaux = ['sa', 'p0', 'ex']
