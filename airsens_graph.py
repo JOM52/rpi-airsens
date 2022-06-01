@@ -37,7 +37,7 @@ class AirSensBatGraph:
         self.server_ip = '192.168.1.139'
         self.database_name = 'airsens'
         # graph
-        self.filter = 12 * 6  # moving average on 5 min * 12 *12 = 12 heures
+        self.filter = 45
         self.reduce_y2_scale_factor = 2.5
 
     def get_db_connection(self, db):
@@ -139,7 +139,7 @@ class AirSensBatGraph:
 
         #         ax1[1, 1].tick_params(axis ='y', labelcolor = 'blue')
         ax1[1, 1].plot(np.array(time_x), np.array(f_bat), color='red', zorder=5)
-        ax1[1, 1].legend(['U bat', 'U bat filtered over ' + str(int(self.filter / 12)) + ' measures'], loc='lower left')
+        ax1[1, 1].legend(['U bat', 'U bat filtered on ' + str(self.filter) + ' measures'], loc='lower left')
 
         #         make_ax2 = False
         #         for d in d_bat:
