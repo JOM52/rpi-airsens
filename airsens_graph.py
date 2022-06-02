@@ -14,6 +14,7 @@ v0.1.1 : 19.02.2022 --> added filtered voltage and delta % of the voltage
 v0.1.2 : 19.02.2022 --> changed the calculation of d_bar scale (d_m)
 v0.1.3 : 21.02.2022 --> grid for bat uniform for the 2 axes
 v0.1.4 : 23.02.2022	--> adjusted the size of the graph the the whole screen
+v0.1.5 : 02.06.2022 --> added local p2
 """
 import sys
 import socket
@@ -78,6 +79,8 @@ class AirSensBatGraph:
     def plot_air_data(self, local, l_names=None):
         # get data from db
         time_x, temp, hum, pres, ubat = self.get_bat_data(local)
+        if len(temp) ==0:
+            return
         data = {'time': time_x, 'bat': ubat}
         df = pd.DataFrame(data)
 
@@ -135,16 +138,10 @@ class AirSensBatGraph:
         ax1[1, 1].set_title("Tension batterie")
         ax1[1, 1].grid(True)
         ax1[1, 1].plot(time_x, ubat, color='lightsteelblue', zorder=0)
-        #         ax1[1, 1].legend(['U bat'], loc='upper left',)
 
         #         ax1[1, 1].tick_params(axis ='y', labelcolor = 'blue')
         ax1[1, 1].plot(np.array(time_x), np.array(f_bat), color='red', zorder=5)
         ax1[1, 1].legend(['U bat', 'U bat filtered on ' + str(self.filter) + ' measures'], loc='lower left')
-
-        #         make_ax2 = False
-        #         for d in d_bat:
-        #             if str(d).isnumeric():
-        #                 make_ax2 = True
 
         # temporary not display the d(bat/dt) trace
         make_ax2 = False
@@ -171,29 +168,15 @@ class AirSensBatGraph:
             np.linspace(ax1[1, 1].get_yticks()[0], ax1[1, 1].get_yticks()[-1], len(ax1[1, 1].get_yticks())))
         if make_ax2:
             ax2.set_yticks(np.linspace(ax2.get_yticks()[0], ax2.get_yticks()[-1], len(ax1[1, 1].get_yticks())))
-#             ax2.set_yticks(np.linspace(ax2.get_yticks()[0], ax2.get_yticks()[-1], len(ax1[1, 1].get_yticks())))
-
-        #         manager = plt.get_current_fig_manager()
-        #         manager.full_screen_toggle()
 
         plt.show()  # plot
 
     def main(self):
         print('runing airsen_graph V' + VERSION_NO)
-#         self.plot_air_data('bu', 'Bureau')
-#         locaux = ['sa', 'bu', 'ex']
-#         l_names = ['Salon', 'Bureau', 'Extérieur']
-#         for i, local in enumerate(locaux):
-#             self.plot_air_data(local, l_names[i])
-#         self.plot_air_data('ex', 'Extérieur')
-        self.plot_air_data('p2', 'Prototype')
-        
-        #         self.plot_air_data('bu', 'Bureau')
-#         locaux = ['sa', 'p0', 'ex']
-#         l_names = ['Salon', 'Proto', 'Extérieur']
-#         for i, local in enumerate(locaux):
-#             self.plot_air_data(local, l_names[i])
-# 
+        locaux = ['sa', 'bu', 'ex', 'p2']
+        l_names = ['Salon', 'Bureau', 'Extérieur', 'Prototype p02']
+        for i, local in enumerate(locaux):
+            self.plot_air_data(local, l_names[i])
 
 if __name__ == '__main__':
     # instantiate the class
