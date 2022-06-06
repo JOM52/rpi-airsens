@@ -162,6 +162,8 @@ class AirSensBatGraph:
         ax1[1, 0].grid(True)
         ax1[1, 0].plot(time_x, pres)
 
+        #elapsed time
+        elapsed = self.get_elapsed_time(local)
         # battery voltage , filtered voltage and delta voltage in %
         ax1[1, 1].tick_params(labelrotation=45)
         ax1[1, 1].set_ylabel('[V]')
@@ -171,7 +173,12 @@ class AirSensBatGraph:
 
         #         ax1[1, 1].tick_params(axis ='y', labelcolor = 'blue')
         ax1[1, 1].plot(np.array(time_x), np.array(f_bat), color='red', zorder=5)
-        ax1[1, 1].legend(['U bat', 'U bat filtered on ' + str(self.filter) + ' measures'], loc='lower left')
+        legend1 = ax1[1, 1].legend(['U bat', 'U bat filtered on ' + str(self.filter) + ' measures'], loc='lower left')
+        legend2 = ax1[1, 1].legend(['Vie batterie:[j-h:m] ' + elapsed], loc='upper right')
+        for item in legend2.legendHandles:
+            item.set_visible(False)
+        plt.gca().add_artist(legend1)
+        plt.gca().add_artist(legend2)
 
         # temporary not display the d(bat/dt) trace
         make_ax2 = False
@@ -189,7 +196,7 @@ class AirSensBatGraph:
         #elapsed time
         elapsed = self.get_elapsed_time(local)
         # Combine all the operations and display
-        fig.suptitle(label_val.upper() + ' [' + PROGRAM_NAME + ' version:' + VERSION_NO + ']' + '\nVie batterie:[j-h:m] ' + elapsed)
+        fig.suptitle(label_val.upper() + ' [' + PROGRAM_NAME + ' version:' + VERSION_NO + ']')
         plt.subplots_adjust(left=0.1,
                             bottom=0.1,
                             right=0.9,
