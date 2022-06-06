@@ -15,6 +15,7 @@ v0.1.2 : 19.02.2022 --> changed the calculation of d_bar scale (d_m)
 v0.1.3 : 21.02.2022 --> grid for bat uniform for the 2 axes
 v0.1.4 : 23.02.2022	--> adjusted the size of the graph the the whole screen
 v0.1.5 : 02.06.2022 --> added local p2
+v0.1.6 : 06.06.2022 --> addeb battery life on graph
 """
 import sys
 import socket
@@ -23,6 +24,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import pyautogui
+import time
 
 VERSION_NO = '0.1.4'
 PROGRAM_NAME = 'airsens_graph.py'
@@ -65,7 +67,7 @@ class AirSensBatGraph:
 
         db_connection, err = self.get_db_connection(self.database_name)
         db_cursor = db_connection.cursor()
-        sql_txt = "SELECT time_stamp, temp, hum, pres, ubat FROM airsens WHERE local = '" + local + "';"
+        sql_txt = "SELECT time_stamp, temp, hum, pres, ubat FROM airsens WHERE local = '" + local + "' order by id desc;"
         db_cursor.execute(sql_txt)
         data = db_cursor.fetchall()
         x_data = [x[0] for x in data]
@@ -75,6 +77,34 @@ class AirSensBatGraph:
         bat_data = [y[4] for y in data]
 
         return x_data, temp_data, hum_data, pres_data, bat_data
+
+    def get_elapsed_time(self, local):
+        
+        db_connection, err = self.get_db_connection(self.database_name)
+        db_cursor = db_connection.cursor()
+        # get the start time and date
+        sql_duree_debut = 'SELECT time_stamp FROM airsens WHERE local="' + local + '" ORDER BY id ASC LIMIT 1;'
+        db_cursor.execute(sql_duree_debut)
+        date_start = db_cursor.fetchall()
+        # get the end time and ddate
+        sql_duree_fin = 'SELECT time_stamp FROM airsens WHERE local="' + local + '" ORDER BY id DESC LIMIT 1;'
+        db_cursor.execute(sql_duree_fin)
+        date_end = db_cursor.fetchall()
+        # close the db
+        db_cursor.close()
+        db_connection.close()
+        # calculate the battery life time
+        str_now = time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())
+        elapsed = ((date_end[0][0] - date_start[0][0]).total_seconds())
+        d = elapsed // (24 * 3600)
+        elapsed = elapsed % (24 * 3600)
+        h = elapsed // 3600
+        elapsed %= 3600
+        m = elapsed // 60
+        elapsed %= 60
+        str_elapsed = '{:02d}'.format(int(d)) + '-' + '{:02d}'.format(int(h)) + ':' + '{:02d}'.format(int(m))
+        return str_elapsed
+
 
     def plot_air_data(self, local, l_names=None):
         # get data from db
@@ -88,7 +118,7 @@ class AirSensBatGraph:
 
         d_bat = pd.Series.diff(f_bat)
         d_bat = [b * 100 for b in d_bat]  # convert values in %
-        data1 = {'time': time_x, 'bat': ubat, 'f_bat': f_bat, 'd_bat': d_bat}
+#         data1 = {'time': time_x, 'bat': ubat, 'f_bat': f_bat, 'd_bat': d_bat}
 
         d_max = -1000
         d_min = 1000
@@ -155,8 +185,11 @@ class AirSensBatGraph:
             ax2.legend(['delta ubat filtered %'], loc='upper right')
             ax2.set_ylim([-d_m, d_m])
 
+        
+        #elapsed time
+        elapsed = self.get_elapsed_time(local)
         # Combine all the operations and display
-        fig.suptitle(label_val.upper() + ' [' + PROGRAM_NAME + ' version:' + VERSION_NO + ']')
+        fig.suptitle(label_val.upper() + ' [' + PROGRAM_NAME + ' version:' + VERSION_NO + ']' + '\nVie batterie:[j-h:m] ' + elapsed)
         plt.subplots_adjust(left=0.1,
                             bottom=0.1,
                             right=0.9,
@@ -174,7 +207,7 @@ class AirSensBatGraph:
     def main(self):
         print('runing airsen_graph V' + VERSION_NO)
         locaux = ['sa', 'bu', 'ex', 'p2']
-        l_names = ['Salon', 'Bureau', 'Extérieur', 'Prototype p02']
+        l_names = ['Salon', 'Bureau', 'Extérieur', 'Prototype p02', 'Test uP v1.18']
         for i, local in enumerate(locaux):
             self.plot_air_data(local, l_names[i])
 
