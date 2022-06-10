@@ -13,6 +13,7 @@ v0.1.0 : 15.02.2022 --> first prototype
 v0.1.1 : 16.02.2022 --> class created with the program
 v0.1.2 : 01.06.2022 --> modified to limit number of mail send to 1
 v0.1.3 : 01.06.2022 --> added proto-2
+v0.1.4 : 10.06.2022 --> corrected battery voltage min and max
 """
 VERSION = '0.1.1'
 APP = 'airsens_mqtt'
@@ -59,7 +60,7 @@ class AirSens:
     def __init__(self):
         # battery
         self.UBAT_100 = 3.0
-        self.UBAT_0 = 2.0
+        self.UBAT_0 = 2.6
         # database
         self.database_username = "pi"  # YOUR MYSQL USERNAME, USUALLY ROOT
         self.database_password = "mablonde"  # YOUR MYSQL PASSWORD

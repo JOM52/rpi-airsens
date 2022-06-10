@@ -26,7 +26,7 @@ import numpy as np
 import pyautogui
 import time
 
-VERSION_NO = '0.1.4'
+VERSION_NO = '0.1.6'
 PROGRAM_NAME = 'airsens_graph.py'
 
 
@@ -40,7 +40,7 @@ class AirSensBatGraph:
         self.server_ip = '192.168.1.139'
         self.database_name = 'airsens'
         # graph
-        self.filter = 45
+        self.filter = 4
         self.reduce_y2_scale_factor = 2.5
 
     def get_db_connection(self, db):
@@ -95,15 +95,22 @@ class AirSensBatGraph:
         db_connection.close()
         # calculate the battery life time
         str_now = time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())
-        elapsed = ((date_end[0][0] - date_start[0][0]).total_seconds())
-        d = elapsed // (24 * 3600)
-        elapsed = elapsed % (24 * 3600)
-        h = elapsed // 3600
-        elapsed %= 3600
-        m = elapsed // 60
-        elapsed %= 60
+        elapsed_s = ((date_end[0][0] - date_start[0][0]).total_seconds())
+        
+        elaps = elapsed_s
+        hh = str(int(elaps // 3600))
+        elaps %= 3600
+        mm = str(int(elaps // 60))
+        elaps_hm = hh + ':' + mm
+        
+        d = elapsed_s // (24 * 3600)
+        elapsed_s = elapsed_s % (24 * 3600)
+        h = elapsed_s // 3600
+        elapsed_s %= 3600
+        m = elapsed_s // 60
+        elapsed_s %= 60
         str_elapsed = '{:02d}'.format(int(d)) + '-' + '{:02d}'.format(int(h)) + ':' + '{:02d}'.format(int(m))
-        return str_elapsed
+        return str_elapsed, elaps_hm
 
 
     def plot_air_data(self, local, l_names=None):
@@ -163,7 +170,7 @@ class AirSensBatGraph:
         ax1[1, 0].plot(time_x, pres)
 
         #elapsed time
-        elapsed = self.get_elapsed_time(local)
+        elapsed, elaps_hm = self.get_elapsed_time(local)
         # battery voltage , filtered voltage and delta voltage in %
         ax1[1, 1].tick_params(labelrotation=45)
         ax1[1, 1].set_ylabel('[V]')
@@ -174,7 +181,7 @@ class AirSensBatGraph:
         #         ax1[1, 1].tick_params(axis ='y', labelcolor = 'blue')
         ax1[1, 1].plot(np.array(time_x), np.array(f_bat), color='red', zorder=5)
         legend1 = ax1[1, 1].legend(['U bat', 'U bat filtered on ' + str(self.filter) + ' measures'], loc='lower left')
-        legend2 = ax1[1, 1].legend(['Vie batterie:[j-h:m] ' + elapsed], loc='upper right')
+        legend2 = ax1[1, 1].legend(['Vie batterie:[j-h:m] ' + elapsed + ' - [h:m] = ' + elaps_hm], loc='upper right')
         for item in legend2.legendHandles:
             item.set_visible(False)
         plt.gca().add_artist(legend1)
@@ -213,8 +220,8 @@ class AirSensBatGraph:
 
     def main(self):
         print('runing airsen_graph V' + VERSION_NO)
-        locaux = ['sa', 'bu', 'ex', 'p2']
-        l_names = ['Salon', 'Bureau', 'Extérieur', 'Prototype p02', 'Test uP v1.18']
+        locaux = ['sa', 'bu', 'ex', 'ts']
+        l_names = ['Salon', 'Bureau', 'Extérieur', 'Test']
         for i, local in enumerate(locaux):
             self.plot_air_data(local, l_names[i])
 
