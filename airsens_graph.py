@@ -40,7 +40,7 @@ class AirSensBatGraph:
         self.server_ip = '192.168.1.139'
         self.database_name = 'airsens'
         # graph
-        self.filter = 4
+        self.filter = 12
         self.reduce_y2_scale_factor = 2.5
 
     def get_db_connection(self, db):
@@ -77,6 +77,12 @@ class AirSensBatGraph:
         bat_data = [y[4] for y in data]
 
         return x_data, temp_data, hum_data, pres_data, bat_data
+    
+    def convert_sec_to_hms(self, seconds):
+        min, sec = divmod(seconds, 60)
+        hour, min = divmod(min, 60)
+#         return "%d:%02d:%02d" % (hour, min, sec)
+        return "%d:%02d" % (hour, min)
 
     def get_elapsed_time(self, local):
         
@@ -97,11 +103,12 @@ class AirSensBatGraph:
         str_now = time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())
         elapsed_s = ((date_end[0][0] - date_start[0][0]).total_seconds())
         
-        elaps = elapsed_s
-        hh = str(int(elaps // 3600))
-        elaps %= 3600
-        mm = str(int(elaps // 60))
-        elaps_hm = hh + ':' + mm
+        elaps_hm = self.convert_sec_to_hms(elapsed_s)
+#         elaps = elapsed_s
+#         hh = str(int(elaps // 3600))
+#         elaps %= 3600
+#         mm = str(int(elaps // 60))
+#         elaps_hm = hh + ':' + mm
         
         d = elapsed_s // (24 * 3600)
         elapsed_s = elapsed_s % (24 * 3600)
@@ -220,7 +227,7 @@ class AirSensBatGraph:
 
     def main(self):
         print('runing airsen_graph V' + VERSION_NO)
-        locaux = ['sa', 'bu', 'ex', 'ts']
+        locaux = ['sa', 'bu', 'ex']
         l_names = ['Salon', 'Bureau', 'Extérieur', 'Test']
         for i, local in enumerate(locaux):
             self.plot_air_data(local, l_names[i])
