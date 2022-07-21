@@ -67,16 +67,13 @@ class AirSensBatGraph:
 
         db_connection, err = self.get_db_connection(self.database_name)
         db_cursor = db_connection.cursor()
-        sql_txt = "SELECT time_stamp, temp, hum, pres, ubat FROM airsens WHERE local = '" + local + "' order by id desc;"
+        sql_txt = "SELECT time_stamp, ubat FROM airsens WHERE local = '" + local + "' order by id desc;"
         db_cursor.execute(sql_txt)
         data = db_cursor.fetchall()
         x_data = [x[0] for x in data]
-        temp_data = [y[1] for y in data]
-        hum_data = [y[2] for y in data]
-        pres_data = [y[3] for y in data]
-        bat_data = [y[4] for y in data]
+        bat_data = [y[1] for y in data]
 
-        return x_data, temp_data, hum_data, pres_data, bat_data
+        return x_data, bat_data
     
     def convert_sec_to_hms(self, seconds):
         min, sec = divmod(seconds, 60)
@@ -104,11 +101,6 @@ class AirSensBatGraph:
         elapsed_s = ((date_end[0][0] - date_start[0][0]).total_seconds())
         
         elaps_hm = self.convert_sec_to_hms(elapsed_s)
-#         elaps = elapsed_s
-#         hh = str(int(elaps // 3600))
-#         elaps %= 3600
-#         mm = str(int(elaps // 60))
-#         elaps_hm = hh + ':' + mm
         
         d = elapsed_s // (24 * 3600)
         elapsed_s = elapsed_s % (24 * 3600)
@@ -120,93 +112,73 @@ class AirSensBatGraph:
         return str_elapsed, elaps_hm
 
 
-    def plot_air_data(self, local, l_names=None):
-        # get data from db
-        time_x, temp, hum, pres, ubat = self.get_bat_data(local)
-        if len(temp) ==0:
-            return
-        data = {'time': time_x, 'bat': ubat}
-        df = pd.DataFrame(data)
-
-        f_bat = df['bat'].rolling(window=self.filter).mean()
-
-        d_bat = pd.Series.diff(f_bat)
-        d_bat = [b * 100 for b in d_bat]  # convert values in %
-#         data1 = {'time': time_x, 'bat': ubat, 'f_bat': f_bat, 'd_bat': d_bat}
-
-        d_max = -1000
-        d_min = 1000
-        for d in d_bat:
-            if d > d_max: d_max = d
-            if d < d_min: d_min = d
-        d_m = max(abs(d_max), abs(d_min)) * self.reduce_y2_scale_factor
-
-        if l_names:
-            label_val = l_names
-        else:
-            label_val = local
-
+    def plot_air_data(self, locaux, l_names):
+        
         fig, ax1 = plt.subplots(2, 2)
+        plot_place = (0,0),(0,1),(1,0),(1,1)
 
-        # adjust the size of the graph to the screen
-        screen_dpi = 90
-        width, height = pyautogui.size()
-        fig.set_figheight(height / screen_dpi)
-        fig.set_figwidth(width / screen_dpi)
+        for i, local in enumerate(locaux):
+            label_val = l_names[i]
+            print('Drawing', str(label_val))
+            # get data from db
+            time_x, ubat = self.get_bat_data(local)
 
-        # temperature
+            if len(ubat) ==0:
+                return
+            data = {'time': time_x, 'bat': ubat}
+            df = pd.DataFrame(data)
 
-        ax1[0, 0].tick_params(labelrotation=45)
-        ax1[0, 0].set_ylabel('[°C]')
-        ax1[0, 0].set_title("Température")
-        ax1[0, 0].grid(True)
-        ax1[0, 0].plot(time_x, temp)
+            f_bat = df['bat'].rolling(window=self.filter).mean()
 
-        # humidity
-        ax1[0, 1].tick_params(labelrotation=45)
-        ax1[0, 1].set_ylabel('[%]')
-        ax1[0, 1].set_title("Humidité")
-        ax1[0, 1].grid(True)
-        ax1[0, 1].plot(time_x, hum)
+            d_bat = pd.Series.diff(f_bat)
+            d_bat = [b * 100 for b in d_bat]  # convert values in %
+    #         data1 = {'time': time_x, 'bat': ubat, 'f_bat': f_bat, 'd_bat': d_bat}
 
-        # air pressure
-        ax1[1, 0].tick_params(labelrotation=45)
-        ax1[1, 0].set_ylabel('[hPa]')
-        ax1[1, 0].set_title("Pression atm.")
-        ax1[1, 0].grid(True)
-        ax1[1, 0].plot(time_x, pres)
+            d_max = -1000
+            d_min = 1000
+            for d in d_bat:
+                if d > d_max: d_max = d
+                if d < d_min: d_min = d
+            d_m = max(abs(d_max), abs(d_min)) * self.reduce_y2_scale_factor
 
-        #elapsed time
-        elapsed, elaps_hm = self.get_elapsed_time(local)
-        # battery voltage , filtered voltage and delta voltage in %
-        ax1[1, 1].tick_params(labelrotation=45)
-        ax1[1, 1].set_ylabel('[V]')
-        ax1[1, 1].set_title("Tension batterie")
-        ax1[1, 1].grid(True)
-        ax1[1, 1].plot(time_x, ubat, color='lightsteelblue', zorder=0)
+            # adjust the size of the graph to the screen
+            screen_dpi = 90
+            width, height = pyautogui.size()
+            fig.set_figheight(height / screen_dpi)
+            fig.set_figwidth(width / screen_dpi)
 
-        #         ax1[1, 1].tick_params(axis ='y', labelcolor = 'blue')
-        ax1[1, 1].plot(np.array(time_x), np.array(f_bat), color='red', zorder=5)
-        legend1 = ax1[1, 1].legend(['U bat', 'U bat filtered on ' + str(self.filter) + ' measures'], loc='lower left')
-        legend2 = ax1[1, 1].legend(['Vie batterie:[j-h:m] ' + elapsed + ' - [h:m] = ' + elaps_hm], loc='upper right')
-        for item in legend2.legendHandles:
-            item.set_visible(False)
+            #elapsed time
+            elapsed, elaps_hm = self.get_elapsed_time(local)
+            # battery voltage , filtered voltage and delta voltage in %
+            ax1[plot_place[i]].tick_params(labelrotation=45)
+            ax1[plot_place[i]].set_ylabel('[V]')
+            ax1[plot_place[i]].set_title("Tension batterie: " + label_val)
+            ax1[plot_place[i]].grid(True)
+            ax1[plot_place[i]].plot(time_x, ubat, color='lightsteelblue', zorder=0)
+
+            #         ax1[plot_place[i]].tick_params(axis ='y', labelcolor = 'blue')
+            ax1[plot_place[i]].plot(np.array(time_x), np.array(f_bat), color='red', zorder=5)
+            legend1 = ax1[plot_place[i]].legend(['U bat', 'U bat filtered on ' + str(self.filter) + ' measures'], loc='lower left')
+            legend2 = ax1[plot_place[i]].legend(['Vie batterie:[j-h:m] ' + elapsed + ' - [h:m] = ' + elaps_hm], loc='upper right')
+            for item in legend2.legendHandles:
+                item.set_visible(False)
+
+# temporary not display the d(bat/dt) trace
+            make_ax2 = False
+            if make_ax2:
+                ax2_color = 'wheat' #'sienna'
+                ax2 = ax1[plot_place[i]].twinx()
+                ax2.tick_params(labelrotation=45)
+                ax2.set_ylabel('d(bat/dt) [%]', color=ax2_color, zorder=10)
+                ax2.plot(time_x, d_bat, color=ax2_color)
+                ax2.tick_params(axis='y', labelcolor=ax2_color)
+                ax2.legend(['delta ubat filtered %'], loc='upper right')
+                ax2.set_ylim([-d_m, d_m])
+
+            
         plt.gca().add_artist(legend1)
         plt.gca().add_artist(legend2)
 
-        # temporary not display the d(bat/dt) trace
-        make_ax2 = False
-        if make_ax2:
-            ax2_color = 'wheat' #'sienna'
-            ax2 = ax1[1, 1].twinx()
-            ax2.tick_params(labelrotation=45)
-            ax2.set_ylabel('d(bat/dt) [%]', color=ax2_color, zorder=10)
-            ax2.plot(time_x, d_bat, color=ax2_color)
-            ax2.tick_params(axis='y', labelcolor=ax2_color)
-            ax2.legend(['delta ubat filtered %'], loc='upper right')
-            ax2.set_ylim([-d_m, d_m])
-
-        
         #elapsed time
         elapsed = self.get_elapsed_time(local)
         # Combine all the operations and display
@@ -218,10 +190,10 @@ class AirSensBatGraph:
                             wspace=0.2,
                             hspace=0.4)
         plt.xticks(rotation=30)
-        ax1[1, 1].set_yticks(
-            np.linspace(ax1[1, 1].get_yticks()[0], ax1[1, 1].get_yticks()[-1], len(ax1[1, 1].get_yticks())))
+        ax1[plot_place[i]].set_yticks(
+            np.linspace(ax1[plot_place[i]].get_yticks()[0], ax1[plot_place[i]].get_yticks()[-1], len(ax1[plot_place[i]].get_yticks())))
         if make_ax2:
-            ax2.set_yticks(np.linspace(ax2.get_yticks()[0], ax2.get_yticks()[-1], len(ax1[1, 1].get_yticks())))
+            ax2.set_yticks(np.linspace(ax2.get_yticks()[0], ax2.get_yticks()[-1], len(ax1[plot_place[i]].get_yticks())))
 
         plt.show()  # plot
 
@@ -229,8 +201,7 @@ class AirSensBatGraph:
         print('runing airsen_graph V' + VERSION_NO)
         locaux = ['3a', '3b', '3c', '4a']
         l_names = ['P03a', 'P03b', 'P03c', 'P04a']
-        for i, local in enumerate(locaux):
-            self.plot_air_data(local, l_names[i])
+        self.plot_air_data(locaux, l_names)
 
 if __name__ == '__main__':
     # instantiate the class
