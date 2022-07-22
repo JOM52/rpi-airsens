@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-file: graph_airsens_bat.py  
+file: airsens_graph_batt.py  
 
 author: jom52
 email: jom52.dev@gmail.com
@@ -9,13 +9,7 @@ github: https://github.com/jom52/esp32-airsens
 
 data management for the project airsens esp32-mqtt-mysql
 
-v0.1.0 : 18.02.2022 --> first prototype
-v0.1.1 : 19.02.2022 --> added filtered voltage and delta % of the voltage
-v0.1.2 : 19.02.2022 --> changed the calculation of d_bar scale (d_m)
-v0.1.3 : 21.02.2022 --> grid for bat uniform for the 2 axes
-v0.1.4 : 23.02.2022	--> adjusted the size of the graph the the whole screen
-v0.1.5 : 02.06.2022 --> added local p2
-v0.1.6 : 06.06.2022 --> addeb battery life on graph
+v0.1.0 : 18.02.2022 --> first prototype based on airsens_graph
 """
 import sys
 import socket
@@ -25,9 +19,10 @@ import pandas as pd
 import numpy as np
 import pyautogui
 import time
+import math
 
-VERSION_NO = '0.1.6'
-PROGRAM_NAME = 'airsens_graph.py'
+VERSION_NO = '0.1.1'
+PROGRAM_NAME = 'airsens_graph_batt.py'
 
 
 class AirSensBatGraph:
@@ -111,11 +106,39 @@ class AirSensBatGraph:
         str_elapsed = '{:02d}'.format(int(d)) + '-' + '{:02d}'.format(int(h)) + ':' + '{:02d}'.format(int(m))
         return str_elapsed, elaps_hm
 
+    def get_hv(self, locaux):
+        
+        len_loc = len(locaux)
+        sqr = math.sqrt(len_loc)
+        divisors = [i for i in range(2,len_loc) if len_loc % i == 0]
+        while len(divisors) == 0:
+            len_loc += 1
+            divisors = [i for i in range(2,len_loc) if len_loc % i == 0]
+        ecarts = [abs(d - math.sqrt(len_loc)) for d in divisors]
+        e_min = min(ecarts)
+        
+        for i, e in enumerate(ecarts):
+            if e == e_min:
+                n_h = divisors[i]
+                n_v = int(len_loc/n_h)
+                if len_loc/n_h != int(len_loc/n_h):
+                    n_v += 1
+                    
+        n_h, n_v = n_v, n_h
+        
+        plot_place = ()
+        for v in range(n_v):
+            for h in range(n_h):
+                plot_place += ((h,v),)
+
+
+        return n_v, n_h, plot_place
+        
 
     def plot_air_data(self, locaux, l_names):
         
-        fig, ax1 = plt.subplots(2, 2)
-        plot_place = (0,0),(0,1),(1,0),(1,1)
+        n_v, n_h, plot_place = self.get_hv(locaux)
+        fig, ax1 = plt.subplots(n_h, n_v)
 
         for i, local in enumerate(locaux):
             label_val = l_names[i]
@@ -175,14 +198,11 @@ class AirSensBatGraph:
                 ax2.legend(['delta ubat filtered %'], loc='upper right')
                 ax2.set_ylim([-d_m, d_m])
 
-            
-        plt.gca().add_artist(legend1)
-        plt.gca().add_artist(legend2)
-
         #elapsed time
         elapsed = self.get_elapsed_time(local)
         # Combine all the operations and display
-        fig.suptitle(label_val.upper() + ' [' + PROGRAM_NAME + ' version:' + VERSION_NO + ']')
+#         fig.suptitle(label_val.upper() + ' [' + PROGRAM_NAME + ' version:' + VERSION_NO + ']')
+        fig.suptitle(PROGRAM_NAME + ' -> version:' + VERSION_NO )
         plt.subplots_adjust(left=0.1,
                             bottom=0.1,
                             right=0.9,
@@ -199,8 +219,8 @@ class AirSensBatGraph:
 
     def main(self):
         print('runing airsen_graph V' + VERSION_NO)
-        locaux = ['3a', '3b', '3c', '4a']
-        l_names = ['P03a', 'P03b', 'P03c', 'P04a']
+        locaux = ['3a', '3b', '3c', '4a']#, 'w0', '3a', '3b', '3a', '3b', '3c', '3c', '3c', '3c']
+        l_names = ['P03a', 'P03b', 'P03c', 'P04a']#, 'wroom_0', 'P03a', 'P03b', 'P03a', 'P03b', 'P03c', 'P03c', 'P03c', 'P03c']
         self.plot_air_data(locaux, l_names)
 
 if __name__ == '__main__':
