@@ -9,7 +9,8 @@ github: https://github.com/jom52/esp32-airsens
 
 data management for the project airsens esp32-mqtt-mysql
 
-v0.1.0 : 18.02.2022 --> first prototype based on airsens_graph
+v0.1.0 : 18.0t.2022 --> first prototype based on airsens_graph
+v0.1.1 : 26.07.2022 --> added algorithm for multi graphs placement
 """
 import sys
 import socket
@@ -125,35 +126,41 @@ class AirSensBatGraph:
     def get_hv(self, locaux):
         
         # return the number of graph in hor(n_h) and in vert(n_v) and a tuple with the list of positions for pyplot(plot:place) 
-        print('=============================')
-        nbre_locaux = len(locaux) # number of graphs to d
-        print('nbre_locaux:',nbre_locaux)
-        if self.is_prime(nbre_locaux): nbre_locaux += 1 # if number of graph is a prime number increment it 
-        sqr_nbre_locaux = math.sqrt(nbre_locaux) # get the square root of graph_numer
-        divisors = [i for i in range(2 , nbre_locaux) if nbre_locaux % i == 0] # get all the divisors for the graph_numer
-        ecarts = {j : abs(d - sqr_nbre_locaux) for j, d in enumerate(divisors)} # get the gap between divisors and square roor
-        divisor_index_min = min(ecarts, key=ecarts.get) # search the index of the smallest gap
-        n_h = divisors[divisor_index_min] # the divisor of the smalest gap is the hor number of graphs
-        n_v = int(nbre_locaux / n_h) # calculate the vert number of graphs
-        if nbre_locaux / n_h != int(nbre_locaux / n_h): n_v += 1 # if nbre vert is not and integer incrmente it 
-#         n_h, n_v = n_v, n_h # if need to change vert and hor numbers
-        
-        plot_place = () 
-        for v in range(n_v):
-            for h in range(n_h):
-                plot_place += ((h,v),)
+            nbre_locaux = len(locaux) # number of graphs to draw
+#         if nbre_locaux < 3:
+#             n_v = 1
+#             n_h = 2
+#             plot_place = (0,1,)
+#             return n_v, n_h, plot_place
+#         else:
+            if self.is_prime(nbre_locaux): nbre_locaux += 1 # if number of graph is a prime number increment it 
+            sqr_nbre_locaux = math.sqrt(nbre_locaux) # get the square root of graph_numer
+            divisors = [i for i in range(2, nbre_locaux) if nbre_locaux % i == 0] # get all the divisors for the graph_numer
+            ecarts = {j : abs(d - sqr_nbre_locaux) for j, d in enumerate(divisors)} # get the gap between divisors and square roor
+            print('nbre_locaux corrigé:',nbre_locaux)
+            print('sqr_nbre_locaux:',sqr_nbre_locaux)
+            print('divisors:',divisors)
+            print('ecarts:',ecarts)
+            divisor_index_min = min(ecarts, key=ecarts.get) # search the index of the smallest gap
+            n_h = divisors[divisor_index_min] # the divisor of the smalest gap is the hor number of graphs
+            n_v = int(nbre_locaux / n_h) # calculate the vert number of graphs
+            if nbre_locaux / n_h != int(nbre_locaux / n_h): n_v += 1 # if nbre vert is not and integer incrmente it 
+            plot_place = () 
+            plot_place += tuple((h,v) for v in range(n_v) for h in range(n_h))
+#         	n_h, n_v = n_v, n_h # if need to change vert and hor numbers
 
-        print('nbre_locaux corrigé:',nbre_locaux)
-        print('sqr_nbre_locaux:',sqr_nbre_locaux)
-        print('divisors:',divisors)
-        print('ecarts:',ecarts)
-        print('divisor_index_min:',divisor_index_min)
-        print('n_h:',n_h)
-        print('n_v:',n_v)
-        print('=============================')
+#         print('=============================')
+#         print('plot_place:', plot_place)
+#         print('nbre_locaux corrigé:',nbre_locaux)
+#         print('sqr_nbre_locaux:',sqr_nbre_locaux)
+#         print('divisors:',divisors)
+#         print('ecarts:',ecarts)
+#         print('divisor_index_min:',divisor_index_min)
+#         print('n_h:',n_h)
+#         print('n_v:',n_v)
+#         print('=============================')
         
-        return n_v, n_h, plot_place
-        
+            return n_v, n_h, plot_place
 
     def plot_air_data(self, locaux): #, l_names):
         
@@ -169,81 +176,83 @@ class AirSensBatGraph:
             time_x, ubat = self.get_bat_data(local)
             n_mes = len(ubat)
 
-            if len(ubat) ==0:
-                return
-            data = {'time': time_x, 'bat': ubat}
-            df = pd.DataFrame(data)
+            if len(ubat) !=0:
+                
+                data = {'time': time_x, 'bat': ubat}
+                df = pd.DataFrame(data)
 
-            f_bat = df['bat'].rolling(window=self.filter).mean()
+                f_bat = df['bat'].rolling(window=self.filter).mean()
 
-            d_bat = pd.Series.diff(f_bat)
-            d_bat = [b * 100 for b in d_bat]  # convert values in %
+                d_bat = pd.Series.diff(f_bat)
+                d_bat = [b * 100 for b in d_bat]  # convert values in %
 
-            d_max = -1000
-            d_min = 1000
-            for d in d_bat:
-                if d > d_max: d_max = d
-                if d < d_min: d_min = d
-            d_m = max(abs(d_max), abs(d_min)) * self.reduce_y2_scale_factor
+                d_max = -1000
+                d_min = 1000
+                for d in d_bat:
+                    if d > d_max: d_max = d
+                    if d < d_min: d_min = d
+                d_m = max(abs(d_max), abs(d_min)) * self.reduce_y2_scale_factor
 
-            # adjust the size of the graph to the screen
-            screen_dpi = 90
-            width, height = pyautogui.size()
-            fig.set_figheight(height / screen_dpi)
-            fig.set_figwidth(width / screen_dpi)
+                # adjust the size of the graph to the screen
+                screen_dpi = 90
+                width, height = pyautogui.size()
+                fig.set_figheight(height / screen_dpi)
+                fig.set_figwidth(width / screen_dpi)
 
-            #elapsed time
-            elapsed, elaps_hm = self.get_elapsed_time(local)
-            # battery voltage , filtered voltage and delta voltage in %
-            ax1[plot_place[i]].tick_params(labelrotation=45)
-            ax1[plot_place[i]].set_ylabel('[V]')
-            ax1[plot_place[i]].set_title("Tension batterie: " + label_val)
-            ax1[plot_place[i]].grid(True)
-            ax1[plot_place[i]].plot(time_x, ubat, color='lightsteelblue', zorder=0)
+                #elapsed time
+                elapsed, elaps_hm = self.get_elapsed_time(local)
+                # battery voltage , filtered voltage and delta voltage in %
+                ax1[plot_place[i]].tick_params(labelrotation=45)
+                ax1[plot_place[i]].set_ylabel('[V]')
+                ax1[plot_place[i]].set_title("Tension batterie: " + label_val)
+                ax1[plot_place[i]].grid(True)
+                ax1[plot_place[i]].plot(time_x, ubat, color='lightsteelblue', zorder=0)
 
-            #         ax1[plot_place[i]].tick_params(axis ='y', labelcolor = 'blue')
-            ax1[plot_place[i]].plot(np.array(time_x), np.array(f_bat), color='red', zorder=5)
-#             legend1 = ax1[plot_place[i]].legend(['U bat', 'U bat filtered on ' + str(self.filter) + ' measures'], loc='lower left')
-#             legend2 = ax1[plot_place[i]].legend(['Vie batterie:[j-h:m] ' + elapsed + ' - [h:m] = ' + elaps_hm + " (" + str(n_mes) + " mes)"]
-#                                                 , loc='upper right')
-            legend2 = ax1[plot_place[i]].legend(['Vie batterie: ' + elapsed + ' (' + elaps_hm + ") (" + str(n_mes) + " mes)"]
-                                                , loc='upper right')
-            for item in legend2.legendHandles:
-                item.set_visible(True)
+                #         ax1[plot_place[i]].tick_params(axis ='y', labelcolor = 'blue')
+                ax1[plot_place[i]].plot(np.array(time_x), np.array(f_bat), color='red', zorder=5)
+    #             legend1 = ax1[plot_place[i]].legend(['U bat', 'U bat filtered on ' + str(self.filter) + ' measures'], loc='lower left')
+    #             legend2 = ax1[plot_place[i]].legend(['Vie batterie:[j-h:m] ' + elapsed + ' - [h:m] = ' + elaps_hm + " (" + str(n_mes) + " mes)"]
+    #                                                 , loc='upper right')
+                legend2 = ax1[plot_place[i]].legend(['Vie batterie: ' + elapsed + ' (' + elaps_hm + ") (" + str(n_mes) + " mes)"]
+                                                    , loc='upper right')
+                for item in legend2.legendHandles:
+                    item.set_visible(True)
 
-            # temporary not display the d(bat/dt) trace
-            make_ax2 = False
-            if make_ax2:
-                ax2_color = 'wheat' #'sienna'
-                ax2 = ax1[plot_place[i]].twinx()
-                ax2.tick_params(labelrotation=45)
-                ax2.set_ylabel('d(bat/dt) [%]', color=ax2_color, zorder=10)
-                ax2.plot(time_x, d_bat, color=ax2_color)
-                ax2.tick_params(axis='y', labelcolor=ax2_color)
-                ax2.legend(['delta ubat filtered %'], loc='upper right')
-                ax2.set_ylim([-d_m, d_m])
+                # temporary not display the d(bat/dt) trace
+                make_ax2 = False
+                if make_ax2:
+                    ax2_color = 'goldenrod'#'wheat' #'sienna'
+                    ax2 = ax1[plot_place[i]].twinx()
+                    ax2.tick_params(labelrotation=45)
+                    ax2.set_ylabel('d(bat/dt) [%]', color=ax2_color, zorder=10)
+                    ax2.plot(time_x, d_bat, color=ax2_color)
+                    ax2.tick_params(axis='y', labelcolor=ax2_color)
+                    ax2.legend(['delta ubat filtered %'], loc='upper right')
+                    ax2.set_ylim([-d_m, d_m])
 
-            #elapsed time
-            elapsed = self.get_elapsed_time(local)
-            # Combine all the operations and display
-            fig.suptitle(label_val.upper() + ' [' + PROGRAM_NAME + ' version:' + VERSION_NO + ']')
-            filter_hd = self.filter/self.intervalle
-            filter_h = int(filter_hd)
-            filter_m = int((filter_hd - filter_h) * 60)
-            fig.suptitle(PROGRAM_NAME.upper() + ' (V' + VERSION_NO + ")\n"
-                         + "filtrage sur " + str(self.filter) + " mesures "
-                         + "(" + str(filter_h) + "h" + str(filter_m) + "m)")
-            plt.subplots_adjust(left=0.1,
-                                bottom=0.1,
-                                right=0.9,
-                                top=0.9,
-                                wspace=0.2,
-                                hspace=0.4)
-            plt.xticks(rotation=30)
-            ax1[plot_place[i]].set_yticks(
-                np.linspace(ax1[plot_place[i]].get_yticks()[0], ax1[plot_place[i]].get_yticks()[-1], len(ax1[plot_place[i]].get_yticks())))
-            if make_ax2:
-                ax2.set_yticks(np.linspace(ax2.get_yticks()[0], ax2.get_yticks()[-1], len(ax1[plot_place[i]].get_yticks())))
+                #elapsed time
+                elapsed = self.get_elapsed_time(local)
+                # Combine all the operations and display
+                fig.suptitle(label_val.upper() + ' [' + PROGRAM_NAME + ' version:' + VERSION_NO + ']')
+                filter_hd = self.filter/self.intervalle
+                filter_h = int(filter_hd)
+                filter_m = int((filter_hd - filter_h) * 60)
+                fig.suptitle(PROGRAM_NAME.upper() + ' (V' + VERSION_NO + ")\n"
+                             + "filtrage sur " + str(self.filter) + " mesures "
+                             + "(" + str(filter_h) + "h" + str(filter_m) + "m)")
+                plt.subplots_adjust(left=0.1,
+                                    bottom=0.1,
+                                    right=0.9,
+                                    top=0.9,
+                                    wspace=0.2,
+                                    hspace=0.4)
+                plt.xticks(rotation=30)
+                ax1[plot_place[i]].set_yticks(
+                    np.linspace(ax1[plot_place[i]].get_yticks()[0], ax1[plot_place[i]].get_yticks()[-1], len(ax1[plot_place[i]].get_yticks())))
+                if make_ax2:
+                    ax2.set_yticks(np.linspace(ax2.get_yticks()[0], ax2.get_yticks()[-1], len(ax1[plot_place[i]].get_yticks())))
+            else:
+                print(label_val + ' ne contient aucune donnée')
 
         plt.show()  # plot
 
