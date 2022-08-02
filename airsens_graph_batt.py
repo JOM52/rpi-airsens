@@ -21,7 +21,7 @@ import numpy as np
 import pyautogui
 import math
 
-VERSION_NO = '0.1.3'
+VERSION_NO = '0.1.1'
 PROGRAM_NAME = 'airsens_graph_batt.py'
 
 
@@ -35,7 +35,7 @@ class AirSensBatGraph:
         self.server_ip = '192.168.1.139'
         self.database_name = 'airsens'
         # graph
-        self.filter = 300
+        self.filter = 60
         self.intervalle = 60 # intervalle entre deux mesures
         self.reduce_y2_scale_factor = 2.5
 
@@ -126,28 +126,35 @@ class AirSensBatGraph:
     def get_hv(self, locaux):
         
         # return the number of graph in hor(n_h) and in vert(n_v) and a tuple with the list of positions for pyplot(plot:place) 
-            nbre_locaux = len(locaux) # number of graphs to draw
-#         if nbre_locaux < 3:
-#             n_v = 1
-#             n_h = 2
-#             plot_place = (0,1,)
-#             return n_v, n_h, plot_place
-#         else:
-            if self.is_prime(nbre_locaux): nbre_locaux += 1 # if number of graph is a prime number increment it 
-            sqr_nbre_locaux = math.sqrt(nbre_locaux) # get the square root of graph_numer
-            divisors = [i for i in range(2, nbre_locaux) if nbre_locaux % i == 0] # get all the divisors for the graph_numer
-            ecarts = {j : abs(d - sqr_nbre_locaux) for j, d in enumerate(divisors)} # get the gap between divisors and square roor
-            print('nbre_locaux corrigé:',nbre_locaux)
-            print('sqr_nbre_locaux:',sqr_nbre_locaux)
-            print('divisors:',divisors)
-            print('ecarts:',ecarts)
-            divisor_index_min = min(ecarts, key=ecarts.get) # search the index of the smallest gap
-            n_h = divisors[divisor_index_min] # the divisor of the smalest gap is the hor number of graphs
-            n_v = int(nbre_locaux / n_h) # calculate the vert number of graphs
-            if nbre_locaux / n_h != int(nbre_locaux / n_h): n_v += 1 # if nbre vert is not and integer incrmente it 
+        nbre_locaux = len(locaux) # number of graphs to draw
+        if nbre_locaux < 3:
+            n_v = 2
+            n_h = 1
+            plot_place = (0,1,)
+            return n_v, n_h, plot_place
+        else:
+            # if number of graph is a prime number increment it
+            if self.is_prime(nbre_locaux): nbre_locaux += 1
+            # get the square root of graph_nubmer
+            sqr_nbre_locaux = math.sqrt(nbre_locaux)
+            # get all the divisors for the graph_numer
+            divisors = [i for i in range(2, nbre_locaux) if nbre_locaux % i == 0]
+            # get the gap between divisors and square roor
+            ecarts = {j : abs(d - sqr_nbre_locaux) for j, d in enumerate(divisors)} 
+#             divisor_index_min = min(ecarts, key=ecarts.get) # search the index of the smallest gap
+            # search the index of the smallest gap
+            ecarts_values = list( ecarts.values())
+            ecarts_keys = list( ecarts.keys())
+            min_value = min( ecarts_values)
+            divisor_index_min = ecarts_keys[ecarts_values.index(min_value)]
+            # the divisor of the smalest gap is the hor number of graphs
+            n_h = divisors[divisor_index_min]
+            # calculate the vert number of graphs and if nbre vert is not and integer incrmente it
+            n_v = int(nbre_locaux / n_h)
+            if nbre_locaux / n_h != int(nbre_locaux / n_h): n_v += 1
+            # get the presentation table for the graphs
             plot_place = () 
             plot_place += tuple((h,v) for v in range(n_v) for h in range(n_h))
-#         	n_h, n_v = n_v, n_h # if need to change vert and hor numbers
 
 #         print('=============================')
 #         print('plot_place:', plot_place)
@@ -160,7 +167,7 @@ class AirSensBatGraph:
 #         print('n_v:',n_v)
 #         print('=============================')
         
-            return n_v, n_h, plot_place
+        return n_v, n_h, plot_place
 
     def plot_air_data(self, locaux): #, l_names):
         
