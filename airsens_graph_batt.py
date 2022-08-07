@@ -265,7 +265,7 @@ class AirSensBatGraph:
 
     def main(self):
         print('runing airsen_graph V' + VERSION_NO)
-        locaux = {'3a':'P03a: 2xAA = 3V', '3b':'P03b: 1S2P = 4.1V', '3c':'P03c: 3xAA = 4.5V', '4a':'P04a: 1S1P = 4.1V'}#, 'w0':'wroom_0 VCC=5V',
+        locaux = {'3a':'P03a: 2xAA = 3V', '3b':'P03b: 1S2P = 4.1V', '3c':'P03c: 3xAA = 4.5V', '4a':'P04a: 1S1P = 4.1V'}#, 'w2':'wroom_0 VCC=5V',
 #                   'w1':'w1','w2':'w2','w3':'w3','w4':'w4','w5':'w5','w6':'w6','w7':'w7','w8':'w8','w9':'w9','wa':'wa','wb':'wb','wc':'wc'}
         print('nbre_locaux:',len(locaux))
         self.plot_air_data(locaux)
