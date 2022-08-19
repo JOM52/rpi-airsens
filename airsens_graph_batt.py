@@ -282,8 +282,8 @@ class AirSensBatGraph:
         locaux = {}
         for loc in locaux_list:
             locaux.update({loc[0]: loc[0] + '-' + loc[1]})
-        locaux = {'3a':'P03a: 2xAA = 3V', '3b':'P03b: 1S2P = 4.1V', '3c':'P03c: 3xAA = 4.5V', '4a':'P04a: 1S1P = 4.1V',
-                  'ex':'Extérieur P04a: 4xAA = 6V', 'yc':'ESPnow 3xAA = 4.5V'}
+        locaux = {'3a':'P03a: 2xAA = 3V', '3b':'P03b: 1S2P = 4.1V', '3c':'P03c: 3xAA = 4.5V', 'yc':'ESPnow Y03c: 3xAA = 4.5V',
+                   '4a':'P04a: 1S1P = 4.1V', 'ex':'Extérieur P04a: 4xAA = 6V'}
         print('nbre_locaux:',len(locaux))
         self.plot_air_data(locaux)
 

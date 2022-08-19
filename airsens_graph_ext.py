@@ -227,8 +227,8 @@ class AirSensBatGraph:
 
     def main(self):
         print('runing airsen_graph V' + VERSION_NO)
-        locaux = ['ex']#, '3b', '3a', '3c', '4a']
-        l_names = ['Extérieur', 'P03b']#, 'P03a', 'P03c', 'P04a']
+        locaux = ['ex', 'yc']#, '3b', '3a', '3c', '4a']
+        l_names = ['Extérieur', 'Y03c']#, 'P03a', 'P03c', 'P04a']
         for i, local in enumerate(locaux):
             self.plot_air_data(local, l_names[i])
 
