@@ -168,6 +168,19 @@ class AirSensBatGraph:
 #         print('=============================')
         
         return n_v, n_h, plot_place
+    
+    def get_locals(self):
+
+        db_connection, err = self.get_db_connection(self.database_name)
+        if not db_connection:
+            print('\nDB connection error')
+            print(err)
+            exit()
+        db_cursor = db_connection.cursor()
+        sql_txt = "SELECT local_short, local_name FROM locals;"
+        db_cursor.execute(sql_txt)
+        data = db_cursor.fetchall()
+        return data
 
     def plot_air_data(self, locaux): #, l_names):
         
@@ -211,7 +224,7 @@ class AirSensBatGraph:
                 # battery voltage , filtered voltage and delta voltage in %
                 ax1[plot_place[i]].tick_params(labelrotation=45)
                 ax1[plot_place[i]].set_ylabel('[V]')
-                ax1[plot_place[i]].set_title("Tension batterie: " + label_val)
+                ax1[plot_place[i]].set_title("Batterie: " + label_val)
                 ax1[plot_place[i]].grid(True)
                 ax1[plot_place[i]].plot(time_x, ubat, color='lightsteelblue', zorder=0)
 
@@ -265,7 +278,11 @@ class AirSensBatGraph:
 
     def main(self):
         print('runing airsen_graph V' + VERSION_NO)
-        locaux = {'3a':'P03a: 2xAA = 3V', '3b':'P03b: 1S2P = 4.1V', '3c':'P03c: 3xAA = 4.5V', '4a':'P04a: 1S1P = 4.1V'}#, 'w2':'wroom_0 VCC=5V',
+        locaux_list = self.get_locals()
+        locaux = {}
+        for loc in locaux_list:
+            locaux.update({loc[0]: loc[0] + '-' + loc[1]})
+        locaux = {'3a':'P03a: 2xAA = 3V', '3b':'P03b: 1S2P = 4.1V', '3c':'P03c: 3xAA = 4.5V', '4a':'P04a: 1S1P = 4.1V', 'ex':'Extérieur P04a: 4xAA = 6V'}#, 'w2':'wroom_0 VCC=5V',
 #                   'w1':'w1','w2':'w2','w3':'w3','w4':'w4','w5':'w5','w6':'w6','w7':'w7','w8':'w8','w9':'w9','wa':'wa','wb':'wb','wc':'wc'}
         print('nbre_locaux:',len(locaux))
         self.plot_air_data(locaux)
