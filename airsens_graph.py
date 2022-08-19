@@ -40,7 +40,7 @@ class AirSensBatGraph:
         self.server_ip = '192.168.1.139'
         self.database_name = 'airsens'
         # graph
-        self.filter = 12
+        self.filter = 30
         self.reduce_y2_scale_factor = 2.5
 
     def get_db_connection(self, db):
@@ -227,8 +227,8 @@ class AirSensBatGraph:
 
     def main(self):
         print('runing airsen_graph V' + VERSION_NO)
-        locaux = ['sa', 'bu', 'ex']
-        l_names = ['Salon', 'Bureau', 'Extérieur', 'Test']
+        locaux = ['3a', '3b', '3c', '4a']
+        l_names = ['P03a', 'P03b', 'P03c', 'P04a']
         for i, local in enumerate(locaux):
             self.plot_air_data(local, l_names[i])
 
