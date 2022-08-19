@@ -59,8 +59,8 @@ class AirSens:
 
     def __init__(self):
         # battery
-        self.UBAT_100 = 3.0
-        self.UBAT_0 = 2.6
+        self.UBAT_100 = 4.5
+        self.UBAT_0 = 3.0
         # database
         self.database_username = "pi"  # YOUR MYSQL USERNAME, USUALLY ROOT
         self.database_password = "mablonde"  # YOUR MYSQL PASSWORD
@@ -75,7 +75,7 @@ class AirSens:
         # mqtt
         self.mqtt_ip = '192.168.1.108'
         self.client = None
-        self.mqtt_client = "airsens_test"
+        self.mqtt_topic = "airsens_test"
 
     def get_db_connection(self, db):
         # get the local IP adress
@@ -213,7 +213,7 @@ class AirSens:
         self.client = mqtt.Client()
         self.client.connect(self.mqtt_ip, 1883, 60)
         # mqtt interrup procedures
-        self.client.on_connect = self.on_connect(self.mqtt_client)
+        self.client.on_connect = self.on_connect(self.mqtt_topic)
         self.client.on_message = self.on_message
         # loop for ever
         self.client.loop_forever()
