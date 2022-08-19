@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-file: mqtt_airsens.py 
+file: airsens_now_mqtt.py 
 
 author: jom52
 email: jom52.dev@gmail.com
@@ -9,13 +9,9 @@ github: https://github.com/jom52/esp32-airsens
 
 data management for the project airsens esp32-mqtt-mysql
 
-v0.1.0 : 15.02.2022 --> first prototype
-v0.1.1 : 16.02.2022 --> class created with the program
-v0.1.2 : 01.06.2022 --> modified to limit number of mail send to 1
-v0.1.3 : 01.06.2022 --> added proto-2
-v0.1.4 : 10.06.2022 --> corrected battery voltage min and max
+v0.1.0 : 19.08.2022 --> first prototype based on airsens_mqtt.py
 """
-VERSION = '0.1.1'
+VERSION = '0.1.0'
 APP = 'airsens_mqtt'
 
 import paho.mqtt.client as mqtt
@@ -28,34 +24,34 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 
-def decode_msg(msg):
-    # msg example: 'jmb10+2225599944476'
-    jmb_id = msg[0:3]
-    piece = msg[3:5]
-    temp = int(msg[6:9]) / 10
-    hum = int(msg[9:11])
-    pres = int(msg[11:14])
-    ubat = int(msg[14:17]) / 100
-    rx_crc = msg[17:19]
-    return jmb_id, piece, temp, hum, pres, ubat, rx_crc
+# def decode_msg(msg):
+#     # msg example: 'jmb10+2225599944476'
+#     jmb_id = msg[0:3]
+#     piece = msg[3:5]
+#     temp = int(msg[6:9]) / 10
+#     hum = int(msg[9:11])
+#     pres = int(msg[11:14])
+#     ubat = int(msg[14:17]) / 100
+#     rx_crc = msg[17:19]
+#     return jmb_id, piece, temp, hum, pres, ubat, rx_crc
+# 
+# 
+# def crc(msg):
+#     # calculate the crc of msg
+#     crc_0 = 0
+#     crc_1 = 0
+#     for i, char in enumerate(msg):
+#         if (i % 2) == 0:
+#             crc_0 += ord(char)
+#         else:
+#             crc_1 += ord(char)
+#     v_crc = crc_0 + crc_1 * 3
+#     if v_crc < 10:
+#         v_crc *= 10
+#     return str(v_crc)[-2:]
 
 
-def crc(msg):
-    # calculate the crc of msg
-    crc_0 = 0
-    crc_1 = 0
-    for i, char in enumerate(msg):
-        if (i % 2) == 0:
-            crc_0 += ord(char)
-        else:
-            crc_1 += ord(char)
-    v_crc = crc_0 + crc_1 * 3
-    if v_crc < 10:
-        v_crc *= 10
-    return str(v_crc)[-2:]
-
-
-class AirSens:
+class AirSensNow:
 
     def __init__(self):
         # battery
@@ -75,7 +71,7 @@ class AirSens:
         # mqtt
         self.mqtt_ip = '192.168.1.108'
         self.client = None
-        self.mqtt_topic = "airsens_test"
+        self.mqtt_topic = "airsens_now_test"
 
     def get_db_connection(self, db):
         # get the local IP adress
@@ -116,17 +112,24 @@ class AirSens:
 
     def record_data_in_db(self, rx_msg):
         # decode the rx_msg
-        _, local, temp, hum, pres, ubat, __ = decode_msg(rx_msg)
-        # calculate % battery charge
-        charge_bat = '{:4.1f}'.format((float(ubat) - self.UBAT_0) / ((self.UBAT_100 - self.UBAT_0) / 100))
+#         print(rx_msg)
+        _, local, temp, hum, pres, ubat = rx_msg.split(',')
         # insert the values in the db
+
+#         print(str_now, '-', str_elapsed, '- ' + local
+#               + ' - temp:' + '{:4.1f}'.format(float(temp)) + '°C'
+#               + ' - hum:' + '{:2.1f}'.format(float(hum)) + '%'
+#               + ' - pres:' + '{:3.1f}'.format(float(pres)) + 'hPa'
+#               + ' - bat:' + '{:4.2f}'.format(float(ubat)) + 'V')
+# 
+
         sql_txt = "".join(["INSERT INTO airsens (local, temp, hum, pres, ubat, charge_bat) VALUES ('",
                            local, "',",
-                           "'", str(temp), "',",
-                           "'", str(hum), "',",
-                           "'", str(pres), "',",
-                           "'", str(ubat), "',",
-                           "'", str(charge_bat), "');"])
+                           "'", '{:4.2f}'.format(float(temp)), "',",
+                           "'", '{:2.1f}'.format(float(hum)), "',",
+                           "'", '{:3.1f}'.format(float(pres)), "',",
+                           "'", '{:4.3f}'.format(float(ubat)), "',",
+                           "'", str(0), "');"])
         db_connection, err = self.get_db_connection(self.database_name)
         db_cursor = db_connection.cursor()
         db_cursor.execute(sql_txt)
@@ -153,7 +156,7 @@ class AirSens:
         elapsed %= 60
         str_elapsed = '{:02d}'.format(int(d)) + '-' + '{:02d}'.format(int(h)) + ':' + '{:02d}'.format(int(m))
         # return the calculate values
-        return str_now, str_elapsed, charge_bat
+        return str_now, str_elapsed
 
     # This is the Subscriber
     def on_connect(self, client, userdata=None, flags=None, rc=None):
@@ -165,49 +168,15 @@ class AirSens:
     def on_message(self, client, userdata, msg):
         # decode the message
         rx_msg = msg.payload.decode()
-        # check the rx and calculate crc
-        rx_crc = rx_msg[-2:]
-        ctrl_crc = crc(rx_msg[:-2])
-        if rx_crc == ctrl_crc:
-            # decode the msg
-            idx, local, temp, hum, pres, ubat, crc_v = decode_msg(rx_msg)
-            # save the data in the db and get time, battery life and battery charge
-            str_now, str_elapsed, charge_bat = self.record_data_in_db(rx_msg)
-            # display the status for the sensor on battery
-            if local == 'bu' or local == 'ex' or local == 'sa' or local == 'p0' or local == 'p2':
-                str_now = time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())
-                if local == 'sa':
-                    local_name = 'Salon :'
-                elif local == 'bu':
-                    local_name = 'Bureau:'
-                elif local == 'ex':
-                    local_name = 'Ext.  :'
-                elif local == 'p0':
-                    local_name = 'Proto-0 :'
-                elif local == 'p2':
-                    local_name = 'Proto-2 :'
-                # build the message
-                msg = local + ' - temp:' + '{:4.1f}'.format(temp) + '°C - hum:' + '{:2.0f}'.format(hum)
-                msg += '% - pres:' + '{:3.0f}'.format(pres) + 'hPa - bat:' + '{:4.2f}'.format(ubat) + 'V'
-                msg += ' - ' + local_name.upper() + ' - battery load:' + charge_bat + '%'
-                msg += ' - battery life(j-h:m):' + str_elapsed
-                msg += ' - ' + str_now
-                print(msg)
-                # check if the battery voltage is ok and send email if too low
-                if float(ubat) < self.UBAT_0 and not self.mail_send:
-                    title = local + ' --> time to recharge battery, tension = ' + str(ubat) + ' [V]'
-                    print(title)
-                    print('---------------------------------------------')
-                    self.send_email(title, msg)
-                    self.mail_send = True
-            else:
-                # just print the received values
-                print(local
-                      + ' - temp:' + '{:4.1f}'.format(temp) + '°C'
-                      + ' - hum:' + '{:2.0f}'.format(hum) + '%'
-                      + ' - pres:' + '{:3.0f}'.format(pres) + 'hPa'
-                      + ' - bat:' + '{:4.2f}'.format(ubat) + 'V'
-                      + ' - ' + str_now)
+        _, local, temp, hum, pres, ubat = rx_msg.split(',')
+        # save the data in the db and get time, battery life and battery charge
+        str_now, str_elapsed = self.record_data_in_db(rx_msg)
+        # display the status for the sensor on battery
+        print(str_now, '-', str_elapsed, '- ' + local
+              + ' - temp:' + '{:4.1f}'.format(float(temp)) + '°C'
+              + ' - hum:' + '{:2.1f}'.format(float(hum)) + '%'
+              + ' - pres:' + '{:3.1f}'.format(float(pres)) + 'hPa'
+              + ' - bat:' + '{:4.2f}'.format(float(ubat)) + 'V')
     def main(self):
         # connect on the mqtt client
         self.client = mqtt.Client()
@@ -221,6 +190,6 @@ class AirSens:
 
 if __name__ == '__main__':
     # instatiate the class
-    airsens = AirSens()
+    airsens = AirSensNow()
     # run main
     airsens.main()
