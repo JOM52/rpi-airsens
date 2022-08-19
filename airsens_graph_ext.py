@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-file: graph_airsens_bat.py  
+file: airsensgraph_ext.py  
 
 author: jom52
 email: jom52.dev@gmail.com
@@ -227,7 +227,7 @@ class AirSensBatGraph:
 
     def main(self):
         print('runing airsen_graph V' + VERSION_NO)
-        locaux = ['ex', '3b']#, '3a', '3c', '4a']
+        locaux = ['ex']#, '3b', '3a', '3c', '4a']
         l_names = ['Extérieur', 'P03b']#, 'P03a', 'P03c', 'P04a']
         for i, local in enumerate(locaux):
             self.plot_air_data(local, l_names[i])
