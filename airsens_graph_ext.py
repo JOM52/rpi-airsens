@@ -16,6 +16,7 @@ v0.1.3 : 21.02.2022 --> grid for bat uniform for the 2 axes
 v0.1.4 : 23.02.2022	--> adjusted the size of the graph the the whole screen
 v0.1.5 : 02.06.2022 --> added local p2
 v0.1.6 : 06.06.2022 --> addeb battery life on graph
+v0.1.7 : 12.09.2022 --> use dictonary for graph list
 """
 import sys
 import socket
@@ -24,9 +25,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import pyautogui
-import time
 
-VERSION_NO = '0.1.6'
+VERSION_NO = '0.1.7'
 PROGRAM_NAME = 'airsens_graph.py'
 
 
@@ -227,10 +227,20 @@ class AirSensBatGraph:
 
     def main(self):
         print('runing airsen_graph V' + VERSION_NO)
-        locaux = ['ex', 'yc']#, '3b', '3a', '3c', '4a']
-        l_names = ['Extérieur', 'Y03c']#, 'P03a', 'P03c', 'P04a']
-        for i, local in enumerate(locaux):
-            self.plot_air_data(local, l_names[i])
+        locaux = {
+#             '3a':'P03a: 2xAA = 3V intervalle = 1min',
+#             '3b':'P03b: 1S2P = 4.1V intervalle = 1min',
+#             '3c':'P03c: 3xAA = 4.5V intervalle = 1min',
+            '4a':'P04a: 1S1P = 4.1V intervalle = 1min',
+#             'ex':'Extérieur P04a: 4xAA = 6V intervalle = 5min',
+            'yc':'ESPnow Y03c: 3xAA = 4.5V intervalle = 1min',
+            'yx':'V-proxy-03c 3xAA=4.5V intervalle variable'
+            }
+        print('nbre_locaux:',len(locaux))
+        for local in locaux.items():
+            print('working for:', local[1])
+            self.plot_air_data(local[0], local[1])
+        print('end')
 
 if __name__ == '__main__':
     # instantiate the class
