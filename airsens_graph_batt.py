@@ -17,7 +17,7 @@ import sys
 import socket
 import mysql.connector
 import matplotlib.pyplot as plt
-import pandas as pd
+# import pandas as pd
 import numpy as np
 import pyautogui
 import math
