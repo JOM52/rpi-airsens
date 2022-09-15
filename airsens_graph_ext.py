@@ -233,8 +233,10 @@ class AirSensBatGraph:
 #             '3c':'P03c: 3xAA = 4.5V intervalle = 1min',
 #             '4a':'P04a: 1S1P = 4.1V intervalle = 1min',
             'ex':'Extérieur P04a: 4xAA = 6V intervalle = 5min',
+            'r2':'test durée p03a 1S2P=4.1V intervalle=1min',
+            'r4':'test durée p03c 3xAA=4.5V intervalle=1min',
 #             'yc':'ESPnow Y03c: 3xAA = 4.5V intervalle = 1min',
-            'yx':'V-proxy-03c 1S1P = 4.1V intervalle variable'
+#             'yx':'V-proxy-03c 1S1P = 4.1V intervalle variable'
             }
         print('nbre_locaux:',len(locaux))
         for local in locaux.items():

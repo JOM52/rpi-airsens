@@ -269,12 +269,15 @@ class AirSensBatGraph:
 #         for loc in locaux_list:
 #             locaux.update({loc[0]: loc[0] + '-' + loc[1]})
         locaux = {
-            '3a':'P03a: 2xAA = 3V intervalle = 1min',
-            '3b':'P03b: 1S2P = 4.1V intervalle = 1min',
-            '3c':'P03c: 3xAA = 4.5V intervalle = 1min',
-            '4a':'P04a: 1S1P = 4.1V intervalle = 1min',
+#             '3a':'P03a: 2xAA = 3V intervalle = 1min',
+#             '3b':'P03b: 1S2P = 4.1V intervalle = 1min',
+#             '3c':'P03c: 3xAA = 4.5V intervalle = 1min',
+#             '4a':'P04a: 1S1P = 4.1V intervalle = 1min',
             'ex':'Extérieur P04a: 4xAA = 6V intervalle = 5min',
-            'yc':'ESPnow Y03c: 3xAA = 4.5V intervalle = 1min'
+            'r2':'test durée p03a 1S2P=4.1V intervalle=1min',
+            'r4':'test durée p03c 3xAA=4.5V intervalle=1min',
+            
+#             'yc':'ESPnow Y03c: 3xAA = 4.5V intervalle = 1min'
             }
         print('nbre_locaux:',len(locaux))
         self.plot_air_data(locaux, 'red')
