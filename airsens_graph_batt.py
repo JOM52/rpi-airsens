@@ -12,6 +12,7 @@ data management for the project airsens esp32-mqtt-mysql
 v0.1.0 : 18.0t.2022 --> first prototype based on airsens_graph
 v0.1.1 : 26.07.2022 --> added algorithm for multi graphs placement
 v0.1.2 : 12.09.2022 --> use dictonary for graph list
+v0.2.0 : 16.09.2022 --> added day mean for temp, hum, pres 
 """
 import sys
 import socket

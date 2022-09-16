@@ -25,6 +25,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import pyautogui
+import datetime
 
 VERSION_NO = '0.1.7'
 PROGRAM_NAME = 'airsens_graph.py'
@@ -41,6 +42,7 @@ class AirSensBatGraph:
         self.database_name = 'airsens'
         # graph
         self.filter = 30
+        self.filter_day = int(24 * 60 / 5) # moyene sur mesure = 24h * 60m / 5m (intervalle)
         self.reduce_y2_scale_factor = 2.5
 
     def get_db_connection(self, db):
@@ -81,7 +83,6 @@ class AirSensBatGraph:
     def convert_sec_to_hms(self, seconds):
         min, sec = divmod(seconds, 60)
         hour, min = divmod(min, 60)
-#         return "%d:%02d:%02d" % (hour, min, sec)
         return "%d:%02d" % (hour, min)
 
     def get_elapsed_time(self, local):
@@ -100,15 +101,8 @@ class AirSensBatGraph:
         db_cursor.close()
         db_connection.close()
         # calculate the battery life time
-#         str_now = time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())
         elapsed_s = ((date_end[0][0] - date_start[0][0]).total_seconds())
-        
         elaps_hm = self.convert_sec_to_hms(elapsed_s)
-#         elaps = elapsed_s
-#         hh = str(int(elaps // 3600))
-#         elaps %= 3600
-#         mm = str(int(elaps // 60))
-#         elaps_hm = hh + ':' + mm
         
         d = elapsed_s // (24 * 3600)
         elapsed_s = elapsed_s % (24 * 3600)
@@ -125,21 +119,20 @@ class AirSensBatGraph:
         time_x, temp, hum, pres, ubat = self.get_bat_data(local)
         if len(temp) ==0:
             return
-        data = {'time': time_x, 'bat': ubat}
-        df = pd.DataFrame(data)
+        data_temp = {'time': time_x, 'temp': temp}
+        data_hum = {'time': time_x, 'hum': hum}
+        data_pres = {'time': time_x, 'pres': pres}
+        data_bat = {'time': time_x, 'bat': ubat}
+        
+        df_temp = pd.DataFrame(data_temp)
+        df_hum = pd.DataFrame(data_hum)
+        df_pres = pd.DataFrame(data_pres)
+        df_bat = pd.DataFrame(data_bat)
 
-        f_bat = df['bat'].rolling(window=self.filter).mean()
-
-        d_bat = pd.Series.diff(f_bat)
-        d_bat = [b * 100 for b in d_bat]  # convert values in %
-#         data1 = {'time': time_x, 'bat': ubat, 'f_bat': f_bat, 'd_bat': d_bat}
-
-        d_max = -1000
-        d_min = 1000
-        for d in d_bat:
-            if d > d_max: d_max = d
-            if d < d_min: d_min = d
-        d_m = max(abs(d_max), abs(d_min)) * self.reduce_y2_scale_factor
+        f_temp = df_temp['temp'].rolling(window=self.filter_day).mean()
+        f_hum = df_hum['hum'].rolling(window=self.filter_day).mean()
+        f_pres = df_pres['pres'].rolling(window=self.filter_day).mean()
+        f_bat = df_bat['bat'].rolling(window=self.filter).mean()
 
         if l_names:
             label_val = l_names
@@ -155,26 +148,28 @@ class AirSensBatGraph:
         fig.set_figwidth(width / screen_dpi)
 
         # temperature
-
         ax1[0, 0].tick_params(labelrotation=45)
         ax1[0, 0].set_ylabel('[°C]')
-        ax1[0, 0].set_title("Température")
+        ax1[0, 0].set_title("Température (en bleu moyenne journalière)")
         ax1[0, 0].grid(True)
         ax1[0, 0].plot(time_x, temp)
+        ax1[0, 0].plot(np.array(time_x), np.array(f_temp), color='blue', zorder=5)
 
         # humidity
         ax1[0, 1].tick_params(labelrotation=45)
         ax1[0, 1].set_ylabel('[%]')
-        ax1[0, 1].set_title("Humidité")
+        ax1[0, 1].set_title("Humidité (en bleu moyenne journalière)")
         ax1[0, 1].grid(True)
         ax1[0, 1].plot(time_x, hum)
+        ax1[0, 1].plot(np.array(time_x), np.array(f_hum), color='blue', zorder=5)
 
         # air pressure
         ax1[1, 0].tick_params(labelrotation=45)
         ax1[1, 0].set_ylabel('[hPa]')
-        ax1[1, 0].set_title("Pression atm.")
+        ax1[1, 0].set_title("Pression atm.  (en bleu moyenne journalière)")
         ax1[1, 0].grid(True)
         ax1[1, 0].plot(time_x, pres)
+        ax1[1, 0].plot(np.array(time_x), np.array(f_pres), color='blue', zorder=5)
 
         #elapsed time
         elapsed, elaps_hm = self.get_elapsed_time(local)
@@ -193,19 +188,6 @@ class AirSensBatGraph:
             item.set_visible(False)
         plt.gca().add_artist(legend1)
         plt.gca().add_artist(legend2)
-
-        # temporary not display the d(bat/dt) trace
-        make_ax2 = False
-        if make_ax2:
-            ax2_color = 'wheat' #'sienna'
-            ax2 = ax1[1, 1].twinx()
-            ax2.tick_params(labelrotation=45)
-            ax2.set_ylabel('d(bat/dt) [%]', color=ax2_color, zorder=10)
-            ax2.plot(time_x, d_bat, color=ax2_color)
-            ax2.tick_params(axis='y', labelcolor=ax2_color)
-            ax2.legend(['delta ubat filtered %'], loc='upper right')
-            ax2.set_ylim([-d_m, d_m])
-
         
         #elapsed time
         elapsed = self.get_elapsed_time(local)
@@ -220,8 +202,6 @@ class AirSensBatGraph:
         plt.xticks(rotation=30)
         ax1[1, 1].set_yticks(
             np.linspace(ax1[1, 1].get_yticks()[0], ax1[1, 1].get_yticks()[-1], len(ax1[1, 1].get_yticks())))
-        if make_ax2:
-            ax2.set_yticks(np.linspace(ax2.get_yticks()[0], ax2.get_yticks()[-1], len(ax1[1, 1].get_yticks())))
 
         plt.show()  # plot
 
