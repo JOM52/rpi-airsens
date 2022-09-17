@@ -12,7 +12,8 @@ data management for the project airsens esp32-mqtt-mysql
 v0.1.0 : 18.0t.2022 --> first prototype based on airsens_graph
 v0.1.1 : 26.07.2022 --> added algorithm for multi graphs placement
 v0.1.2 : 12.09.2022 --> use dictonary for graph list
-v0.2.0 : 16.09.2022 --> added day mean for temp, hum, pres 
+v0.2.0 : 16.09.2022 --> added day mean for temp, hum, pres
+v0.2.1 : 17.09.2022 --> cosmetical changes
 """
 import sys
 import socket
@@ -23,7 +24,7 @@ import numpy as np
 import pyautogui
 import math
 
-VERSION_NO = '0.1.2'
+VERSION_NO = '0.2.1'
 PROGRAM_NAME = 'airsens_graph_batt.py'
 
 
@@ -80,8 +81,6 @@ class AirSensBatGraph:
     def convert_sec_to_hms(self, seconds):
         min, sec = divmod(seconds, 60)
         hour, min = divmod(min, 60)
-#         return "%d:%02d:%02d" % (hour, min, sec)
-#         return "%d:%02d" % (hour, min)
         return str(int(hour)) + 'h' + str(int(min)) + 'm'
 
     def get_elapsed_time(self, local):
@@ -143,7 +142,6 @@ class AirSensBatGraph:
             divisors = [i for i in range(2, nbre_locaux) if nbre_locaux % i == 0]
             # get the gap between divisors and square roor
             ecarts = {j : abs(d - sqr_nbre_locaux) for j, d in enumerate(divisors)} 
-#             divisor_index_min = min(ecarts, key=ecarts.get) # search the index of the smallest gap
             # search the index of the smallest gap
             ecarts_values = list( ecarts.values())
             ecarts_keys = list( ecarts.keys())
@@ -157,17 +155,6 @@ class AirSensBatGraph:
             # get the presentation table for the graphs
             plot_place = () 
             plot_place += tuple((h,v) for v in range(n_v) for h in range(n_h))
-
-#         print('=============================')
-#         print('plot_place:', plot_place)
-#         print('nbre_locaux corrigé:',nbre_locaux)
-#         print('sqr_nbre_locaux:',sqr_nbre_locaux)
-#         print('divisors:',divisors)
-#         print('ecarts:',ecarts)
-#         print('divisor_index_min:',divisor_index_min)
-#         print('n_h:',n_h)
-#         print('n_v:',n_v)
-#         print('=============================')
         
         return n_v, n_h, plot_place
 
@@ -186,21 +173,6 @@ class AirSensBatGraph:
             n_mes = len(ubat)
 
             if len(ubat) !=0:
-                
-#                 data = {'time': time_x, 'bat': ubat}
-#                 df = pd.DataFrame(data)
-# 
-#                 f_bat = df['bat'].rolling(window=self.filter).mean()
-# 
-#                 d_bat = pd.Series.diff(f_bat)
-#                 d_bat = [b * 100 for b in d_bat]  # convert values in %
-# 
-#                 d_max = -1000
-#                 d_min = 1000
-#                 for d in d_bat:
-#                     if d > d_max: d_max = d
-#                     if d < d_min: d_min = d
-#                 d_m = max(abs(d_max), abs(d_min)) * self.reduce_y2_scale_factor
 
                 # adjust the size of the graph to the screen
                 screen_dpi = 90
@@ -213,18 +185,11 @@ class AirSensBatGraph:
                 # battery voltage , filtered voltage and delta voltage in %
                 ax1[plot_place[i]].tick_params(labelrotation=45)
                 ax1[plot_place[i]].set_ylabel('[V]')
-                ax1[plot_place[i]].set_title("Batterie: " + label_val)
+                ax1[plot_place[i]].set_title(label_val.lower())
                 ax1[plot_place[i]].grid(True)
-#                 ax1[plot_place[i]].plot(time_x, ubat, color='lightsteelblue', zorder=0)
                 ax1[plot_place[i]].plot(time_x, ubat, color='#a2653e', zorder=0)
 
-#                 ax1[plot_place[i]].tick_params(axis ='y', labelcolor = 'blue')
-#                 ax1[plot_place[i]].plot(np.array(time_x), np.array(f_bat), color=v_color, zorder=5)
-#                 legend1 = ax1[plot_place[i]].legend(['U bat', 'U bat filtered on ' + str(self.filter) + ' measures'], loc='lower left')
-#                 legend2 = ax1[plot_place[i]].legend(['Vie batterie:[j-h:m] ' + elapsed + ' - [h:m] = ' + elaps_hm + " (" + str(n_mes) + " mes)"]                       , loc='upper right')
                 legend2 = ax1[plot_place[i]].legend(['Vie batterie: ' + elapsed + ' (' + elaps_hm + ") (" + str(n_mes) + " mes)"], loc='upper right')
-#                 for item in legend2.legendHandles:
-#                     item.set_visible(True)
 
                 # temporary not display the d(bat/dt) trace
                 make_ax2 = False
@@ -266,17 +231,15 @@ class AirSensBatGraph:
 
     def main(self):
         print('runing airsen_graph V' + VERSION_NO)
-        locaux = {}
-#         for loc in locaux_list:
-#             locaux.update({loc[0]: loc[0] + '-' + loc[1]})
         locaux = {
 #             '3a':'P03a: 2xAA = 3V intervalle = 1min',
 #             '3b':'P03b: 1S2P = 4.1V intervalle = 1min',
 #             '3c':'P03c: 3xAA = 4.5V intervalle = 1min',
 #             '4a':'P04a: 1S1P = 4.1V intervalle = 1min',
-            'ex':'Extérieur P04a: 4xAA = 6V intervalle = 5min',
-            'r2':'test durée p03a 1S2P=4.1V intervalle=1min',
-            'r4':'test durée p03c 3xAA=4.5V intervalle=1min',
+            'ex':'extérieur P04a: 4xAA=6V intervalle=5min',
+            'r4':'test durée r4 p03c 3xAA=4.5V intervalle=1min',
+            'r1':'test durée r1 p01a 1S1P=4.1V intervalle=1min',
+            'r2':'test durée r2 p03a 1S2P=4.1V intervalle=1min',
             
 #             'yc':'ESPnow Y03c: 3xAA = 4.5V intervalle = 1min'
             }

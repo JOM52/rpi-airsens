@@ -17,6 +17,7 @@ v0.1.4 : 23.02.2022	--> adjusted the size of the graph the the whole screen
 v0.1.5 : 02.06.2022 --> added local p2
 v0.1.6 : 06.06.2022 --> addeb battery life on graph
 v0.1.7 : 12.09.2022 --> use dictonary for graph list
+v0.2.0 : 16.09.2022 --> added day mean for temp, hum, pres
 """
 import sys
 import socket
@@ -27,7 +28,7 @@ import numpy as np
 import pyautogui
 import datetime
 
-VERSION_NO = '0.1.7'
+VERSION_NO = '0.2.0'
 PROGRAM_NAME = 'airsens_graph.py'
 
 
@@ -114,7 +115,7 @@ class AirSensBatGraph:
         return str_elapsed, elaps_hm
 
 
-    def plot_air_data(self, local, l_names=None):
+    def plot_air_data(self, local, l_names, l_filter):
         # get data from db
         time_x, temp, hum, pres, ubat = self.get_bat_data(local)
         if len(temp) ==0:
@@ -129,10 +130,10 @@ class AirSensBatGraph:
         df_pres = pd.DataFrame(data_pres)
         df_bat = pd.DataFrame(data_bat)
 
-        f_temp = df_temp['temp'].rolling(window=self.filter_day).mean()
-        f_hum = df_hum['hum'].rolling(window=self.filter_day).mean()
-        f_pres = df_pres['pres'].rolling(window=self.filter_day).mean()
-        f_bat = df_bat['bat'].rolling(window=self.filter).mean()
+        f_temp = df_temp['temp'].rolling(window=l_filter).mean()
+        f_hum = df_hum['hum'].rolling(window=l_filter).mean()
+        f_pres = df_pres['pres'].rolling(window=l_filter).mean()
+        f_bat = df_bat['bat'].rolling(window=l_filter).mean()
 
         if l_names:
             label_val = l_names
@@ -212,16 +213,17 @@ class AirSensBatGraph:
 #             '3b':'P03b: 1S2P = 4.1V intervalle = 1min',
 #             '3c':'P03c: 3xAA = 4.5V intervalle = 1min',
 #             '4a':'P04a: 1S1P = 4.1V intervalle = 1min',
-            'ex':'Extérieur P04a: 4xAA = 6V intervalle = 5min',
-            'r2':'test durée p03a 1S2P=4.1V intervalle=1min',
-            'r4':'test durée p03c 3xAA=4.5V intervalle=1min',
 #             'yc':'ESPnow Y03c: 3xAA = 4.5V intervalle = 1min',
-#             'yx':'V-proxy-03c 1S1P = 4.1V intervalle variable'
+#             'yx':'V-proxy-03c 1S1P = 4.1V intervalle variable',
+            'ex':['Extérieur P04a: 4xAA = 6V intervalle=5min',288],
+            'r1':['test durée p01a 1S1P=4.1V intervalle=1min',144],
+            'r2':['test durée p03a 1S2P=4.1V intervalle=1min',144],
+            'r4':['test durée p03c 3xAA=4.5V intervalle=1min',144]
             }
         print('nbre_locaux:',len(locaux))
         for local in locaux.items():
             print('working for:', local[1])
-            self.plot_air_data(local[0], local[1])
+            self.plot_air_data(local[0], local[1][0], local[1][1])
         print('end')
 
 if __name__ == '__main__':
