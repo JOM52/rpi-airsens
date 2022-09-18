@@ -18,6 +18,7 @@ v0.1.5 : 02.06.2022 --> added local p2
 v0.1.6 : 06.06.2022 --> addeb battery life on graph
 v0.1.7 : 12.09.2022 --> use dictonary for graph list
 v0.2.0 : 16.09.2022 --> added day mean for temp, hum, pres
+v0.2.1 : 18.09.2022 --> cosmetical changes
 """
 import sys
 import socket
@@ -28,7 +29,7 @@ import numpy as np
 import pyautogui
 import datetime
 
-VERSION_NO = '0.2.0'
+VERSION_NO = '0.2.1'
 PROGRAM_NAME = 'airsens_graph.py'
 
 
@@ -84,7 +85,9 @@ class AirSensBatGraph:
     def convert_sec_to_hms(self, seconds):
         min, sec = divmod(seconds, 60)
         hour, min = divmod(min, 60)
-        return "%d:%02d" % (hour, min)
+#         return "%d:%02d" % (hour, min)
+#         return str(hour) +"h " + str(min) + "m"
+        return '{:0d}'.format(int(hour))  + "h " + '{:0d}'.format(int(min)) + "m"
 
     def get_elapsed_time(self, local):
         
@@ -112,6 +115,7 @@ class AirSensBatGraph:
         m = elapsed_s // 60
         elapsed_s %= 60
         str_elapsed = '{:02d}'.format(int(d)) + '-' + '{:02d}'.format(int(h)) + ':' + '{:02d}'.format(int(m))
+        str_elapsed = '{:02d}'.format(int(d)) + 'j ' + '{:2d}'.format(int(h)) + 'h ' + '{:2d}'.format(int(m)) + 'm'
         return str_elapsed, elaps_hm
 
 
@@ -156,40 +160,41 @@ class AirSensBatGraph:
         # temperature
         ax1[0, 0].tick_params(labelrotation=45)
         ax1[0, 0].set_ylabel('[°C]')
-        ax1[0, 0].set_title("Température (en bleu moyenne journalière)")
+        ax1[0, 0].set_title("Température")
         ax1[0, 0].grid(True)
         ax1[0, 0].plot(time_x, temp)
-        if plot_filtered_data: ax1[0, 0].plot(np.array(time_x), np.array(f_temp), color='blue', zorder=5)
+        if plot_filtered_data: ax1[0, 0].plot(np.array(time_x), np.array(f_temp), color='magenta', zorder=5)
 
         # humidity
         ax1[0, 1].tick_params(labelrotation=45)
         ax1[0, 1].set_ylabel('[%]')
-        ax1[0, 1].set_title("Humidité (en bleu moyenne journalière)")
+        ax1[0, 1].set_title("Humidité")
         ax1[0, 1].grid(True)
         ax1[0, 1].plot(time_x, hum)
-        if plot_filtered_data: ax1[0, 1].plot(np.array(time_x), np.array(f_hum), color='blue', zorder=5)
+        if plot_filtered_data: ax1[0, 1].plot(np.array(time_x), np.array(f_hum), color='magenta', zorder=5)
 
         # air pressure
         ax1[1, 0].tick_params(labelrotation=45)
         ax1[1, 0].set_ylabel('[hPa]')
-        ax1[1, 0].set_title("Pression atm.  (en bleu moyenne journalière)")
+        ax1[1, 0].set_title("Pression atm.")
         ax1[1, 0].grid(True)
         ax1[1, 0].plot(time_x, pres)
-        if plot_filtered_data: ax1[1, 0].plot(np.array(time_x), np.array(f_pres), color='blue', zorder=5)
+        if plot_filtered_data: ax1[1, 0].plot(np.array(time_x), np.array(f_pres), color='magenta', zorder=5)
 
         #elapsed time
         elapsed, elaps_hm = self.get_elapsed_time(local)
         # battery voltage , filtered voltage and delta voltage in %
         ax1[1, 1].tick_params(labelrotation=45)
         ax1[1, 1].set_ylabel('[V]')
-        ax1[1, 1].set_title("Tension batterie")
+        ax1[1, 1].set_title("Tension batterie" )
         ax1[1, 1].grid(True)
         ax1[1, 1].plot(time_x, ubat, color='lightsteelblue', zorder=0)
 
         #         ax1[1, 1].tick_params(axis ='y', labelcolor = 'blue')
         ax1[1, 1].plot(np.array(time_x), np.array(f_bat), color='red', zorder=5)
         legend1 = ax1[1, 1].legend(['U bat', 'U bat filtered on ' + str(self.filter) + ' measures'], loc='lower left')
-        legend2 = ax1[1, 1].legend(['Vie batterie:[j-h:m] ' + elapsed + ' - [h:m] = ' + elaps_hm], loc='upper right')
+#         legend2 = ax1[1, 1].legend(['Vie batterie:[j-h:m] ' + elapsed + ' - [h:m] = ' + elaps_hm], loc='upper right')
+        legend2 = ax1[1, 1].legend(['Vie batterie: ' + elapsed + ' --> ' + elaps_hm], loc='upper right')
         for item in legend2.legendHandles:
             item.set_visible(False)
         plt.gca().add_artist(legend1)
@@ -198,7 +203,7 @@ class AirSensBatGraph:
         #elapsed time
         elapsed = self.get_elapsed_time(local)
         # Combine all the operations and display
-        fig.suptitle(label_val.upper() + ' [' + PROGRAM_NAME + ' version:' + VERSION_NO + ']')
+        fig.suptitle(label_val + ' [' + PROGRAM_NAME + ' ' + VERSION_NO + ']\n(magenta: moyenne journalière)')
         plt.subplots_adjust(left=0.1,
                             bottom=0.1,
                             right=0.9,
@@ -215,11 +220,12 @@ class AirSensBatGraph:
         print('runing airsen_graph V' + VERSION_NO)
         """
         locaux{} is a dictionary with the structure:
-        'key':[description, filter on n measures]
-        n depend de l'intervalle entre deux mesures pour le filtrage se fass sur 24h
-        exemple:
+        'key':[description, average on n measures]
+        n depend de l'intervalle entre deux mesures pour que la moyenne soit sur 24h
+        si n=0  pas de print de la courbe moyenne autrement exemple:
             intervalle de 5 min --> n = 24*60/5 = 288
             intervalle de 1 min --> n = 24*60/1 = 1440
+            intervalle de 15 min --> m = 24*60/15 = 96
         """
         locaux = {
 #             '3a':['P03a: 2xAA = 3V intervalle = 1min',1440],
@@ -227,7 +233,7 @@ class AirSensBatGraph:
 #             '3c':['P03c: 3xAA = 4.5V intervalle = 1min',1440],
 #             '4a':['P04a: 1S1P = 4.1V intervalle = 1min',1440],
 #             'yc':['ESPnow Y03c: 3xAA = 4.5V intervalle = 1min',1440],
-            'yx':['V-proxy-03c 1S1P = 4.1V intervalle variable',0],
+#             'yx':['V-proxy-03c 1S1P = 4.1V intervalle variable',0],
             'ex':['Extérieur P04a: 4xAA = 6V intervalle=5min',288],
             'r1':['test durée p01a 1S1P=4.1V intervalle=1min',1440],
             'r2':['test durée p03a 1S2P=4.1V intervalle=1min',1440],

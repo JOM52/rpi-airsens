@@ -172,7 +172,7 @@ class AirSensBatGraph:
             time_x, ubat = self.get_bat_data(local)
             n_mes = len(ubat)
 
-            if len(ubat) !=0:
+            if len(ubat) != 0:
 
                 # adjust the size of the graph to the screen
                 screen_dpi = 90
@@ -192,27 +192,25 @@ class AirSensBatGraph:
                 legend2 = ax1[plot_place[i]].legend(['Vie batterie: ' + elapsed + ' (' + elaps_hm + ") (" + str(n_mes) + " mes)"], loc='upper right')
 
                 # temporary not display the d(bat/dt) trace
-                make_ax2 = False
-                if make_ax2:
-                    ax2_color = 'goldenrod'#'wheat' #'sienna'
-                    ax2 = ax1[plot_place[i]].twinx()
-                    ax2.tick_params(labelrotation=45)
-                    ax2.set_ylabel('d(bat/dt) [%]', color=ax2_color, zorder=10)
-                    ax2.plot(time_x, d_bat, color=ax2_color)
-                    ax2.tick_params(axis='y', labelcolor=ax2_color)
-                    ax2.legend(['delta ubat filtered %'], loc='upper right')
-                    ax2.set_ylim([-d_m, d_m])
+#                 make_ax2 = False
+#                 if make_ax2:
+#                     ax2_color = 'goldenrod'#'wheat' #'sienna'
+#                     ax2 = ax1[plot_place[i]].twinx()
+#                     ax2.tick_params(labelrotation=45)
+#                     ax2.set_ylabel('d(bat/dt) [%]', color=ax2_color, zorder=10)
+#                     ax2.plot(time_x, d_bat, color=ax2_color)
+#                     ax2.tick_params(axis='y', labelcolor=ax2_color)
+#                     ax2.legend(['delta ubat filtered %'], loc='upper right')
+#                     ax2.set_ylim([-d_m, d_m])
 
                 #elapsed time
                 elapsed = self.get_elapsed_time(local)
                 # Combine all the operations and display
                 fig.suptitle(label_val.upper() + ' [' + PROGRAM_NAME + ' version:' + VERSION_NO + ']')
-                filter_hd = self.filter/self.intervalle
-                filter_h = int(filter_hd)
-                filter_m = int((filter_hd - filter_h) * 60)
-                fig.suptitle(PROGRAM_NAME.upper() + ' (V' + VERSION_NO + ")\n"
-                             + "filtrage sur " + str(self.filter) + " mesures "
-                             + "(" + str(filter_h) + "h" + str(filter_m) + "m)")
+#                 filter_hd = self.filter/self.intervalle
+#                 filter_h = int(filter_hd)
+#                 filter_m = int((filter_hd - filter_h) * 60)
+                fig.suptitle(PROGRAM_NAME.upper() + ' (V' + VERSION_NO)
                 plt.subplots_adjust(left=0.1,
                                     bottom=0.1,
                                     right=0.9,
@@ -222,8 +220,8 @@ class AirSensBatGraph:
                 plt.xticks(rotation=30)
                 ax1[plot_place[i]].set_yticks(
                     np.linspace(ax1[plot_place[i]].get_yticks()[0], ax1[plot_place[i]].get_yticks()[-1], len(ax1[plot_place[i]].get_yticks())))
-                if make_ax2:
-                    ax2.set_yticks(np.linspace(ax2.get_yticks()[0], ax2.get_yticks()[-1], len(ax1[plot_place[i]].get_yticks())))
+#                 if make_ax2:
+#                     ax2.set_yticks(np.linspace(ax2.get_yticks()[0], ax2.get_yticks()[-1], len(ax1[plot_place[i]].get_yticks())))
             else:
                 print(label_val + ' ne contient aucune donnée')
 
