@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-file: airsensgraph_details.py  
+file: airsens_graph_compare.py  
 
 author: jom52
 email: jom52.dev@gmail.com
@@ -29,7 +29,7 @@ import numpy as np
 import pyautogui
 
 VERSION_NO = '0.2.1'
-PROGRAM_NAME = 'airsens_graph.py'
+PROGRAM_NAME = 'airsens_graph_compare.py'
 
 
 class AirSensBatGraph:
@@ -84,8 +84,6 @@ class AirSensBatGraph:
     def convert_sec_to_hms(self, seconds):
         min, sec = divmod(seconds, 60)
         hour, min = divmod(min, 60)
-#         return "%d:%02d" % (hour, min)
-#         return str(hour) +"h " + str(min) + "m"
         return '{:0d}'.format(int(hour))  + "h " + '{:0d}'.format(int(min)) + "m"
 
     def get_elapsed_time(self, local):
@@ -104,8 +102,11 @@ class AirSensBatGraph:
         db_cursor.close()
         db_connection.close()
         # calculate the battery life time
-        elapsed_s = ((date_end[0][0] - date_start[0][0]).total_seconds())
+        elapsed_s = int((date_end[0][0] - date_start[0][0]).total_seconds())
         elaps_hm = self.convert_sec_to_hms(elapsed_s)
+        elaps_s = elapsed_s
+#         print((date_end[0][0] - date_start[0][0]).total_seconds())
+#         print(elapsed_s)
         
         d = elapsed_s // (24 * 3600)
         elapsed_s = elapsed_s % (24 * 3600)
@@ -115,94 +116,68 @@ class AirSensBatGraph:
         elapsed_s %= 60
         str_elapsed = '{:02d}'.format(int(d)) + '-' + '{:02d}'.format(int(h)) + ':' + '{:02d}'.format(int(m))
         str_elapsed = '{:02d}'.format(int(d)) + 'j ' + '{:2d}'.format(int(h)) + 'h ' + '{:2d}'.format(int(m)) + 'm'
-        return str_elapsed, elaps_hm
+        return str_elapsed, elaps_hm, elaps_s
 
-
-    def plot_air_data(self, local, l_names, l_filter):
+    def plot_compare(self, locaux):
         
         plot_filtered_data = False
-        if l_filter != 0:
-            plot_filtered_data = True
-            
-        # get data from db
-        time_x, temp, hum, pres, ubat = self.get_bat_data(local)
-        if len(temp) ==0:
-            return
-        data_temp = {'time': time_x, 'temp': temp}
-        data_hum = {'time': time_x, 'hum': hum}
-        data_pres = {'time': time_x, 'pres': pres}
-        data_bat = {'time': time_x, 'bat': ubat}
         
-        df_temp = pd.DataFrame(data_temp)
-        df_hum = pd.DataFrame(data_hum)
-        df_pres = pd.DataFrame(data_pres)
-        df_bat = pd.DataFrame(data_bat)
-
-        f_temp = df_temp['temp'].rolling(window=l_filter).mean()
-        f_hum = df_hum['hum'].rolling(window=l_filter).mean()
-        f_pres = df_pres['pres'].rolling(window=l_filter).mean()
-        f_bat = df_bat['bat'].rolling(window=l_filter).mean()
-
-        if l_names:
-            label_val = local + " --> " + l_names
-        else:
-            label_val = local
-
-        fig, ax1 = plt.subplots(2, 2)
-
+        fig, ax1 = plt.subplots(2, 1)
         # adjust the size of the graph to the screen
         screen_dpi = 90
         width, height = pyautogui.size()
         fig.set_figheight(height / screen_dpi)
         fig.set_figwidth(width / screen_dpi)
-
-        # temperature
-        ax1[0, 0].tick_params(labelrotation=45)
-        ax1[0, 0].set_ylabel('[°C]')
-        ax1[0, 0].set_title("Température")
-        ax1[0, 0].grid(True)
-        ax1[0, 0].plot(time_x, temp, color='lavender')
-        if plot_filtered_data: ax1[0, 0].plot(np.array(time_x), np.array(f_temp), color='black', zorder=5)
-
-        # humidity
-        ax1[0, 1].tick_params(labelrotation=45)
-        ax1[0, 1].set_ylabel('[%]')
-        ax1[0, 1].set_title("Humidité")
-        ax1[0, 1].grid(True)
-        ax1[0, 1].plot(time_x, hum, color='bisque')
-        if plot_filtered_data: ax1[0, 1].plot(np.array(time_x), np.array(f_hum), color='black', zorder=5)
-
-        # air pressure
-        ax1[1, 0].tick_params(labelrotation=45)
-        ax1[1, 0].set_ylabel('[hPa]')
-        ax1[1, 0].set_title("Pression atm.")
-        ax1[1, 0].grid(True)
-        ax1[1, 0].plot(time_x, pres, color='lightcyan')
-        if plot_filtered_data: ax1[1, 0].plot(np.array(time_x), np.array(f_pres), color='black', zorder=5)
-
-        #elapsed time
-        elapsed, elaps_hm = self.get_elapsed_time(local)
-        # battery voltage , filtered voltage and delta voltage in %
-        ax1[1, 1].tick_params(labelrotation=45)
-        ax1[1, 1].set_ylabel('[V]')
-        ax1[1, 1].set_title("Tension batterie" )
-        ax1[1, 1].grid(True)
-        ax1[1, 1].plot(time_x, ubat, color='lightsteelblue', zorder=0)
-
-        #         ax1[1, 1].tick_params(axis ='y', labelcolor = 'blue')
-        ax1[1, 1].plot(np.array(time_x), np.array(f_bat), color='red', zorder=5)
-        legend1 = ax1[1, 1].legend(['U bat', 'U bat filtered on ' + str(self.filter) + ' measures'], loc='lower left')
-#         legend2 = ax1[1, 1].legend(['Vie batterie:[j-h:m] ' + elapsed + ' - [h:m] = ' + elaps_hm], loc='upper right')
-        legend2 = ax1[1, 1].legend(['Vie batterie: ' + elapsed + ' --> ' + elaps_hm], loc='upper right')
-        for item in legend2.legendHandles:
-            item.set_visible(False)
-        plt.gca().add_artist(legend1)
-        plt.gca().add_artist(legend2)
         
-        #elapsed time
-        elapsed = self.get_elapsed_time(local)
-        # Combine all the operations and display
-        fig.suptitle(label_val + '\n' + PROGRAM_NAME + ' ' + VERSION_NO + ' (noir: moyenne journalière)')
+        color = ['black', 'red', 'brown', 'green', 'blue']
+#         legend_txt = ''
+        font = {'family': 'serif', 'color':  'darkred', 'weight': 'normal', 'size': 16,}
+        
+        for i, local_d in enumerate(locaux.items()):
+            
+            local = local_d[0]
+            local_detail = local_d[1][0]
+            l_filter = local_d[1][1]
+            print('working for:', str(local_d[0]) + ' - ' + str(local_d[1]))
+            # get data from db
+            time_x, temp, hum, pres, ubat = self.get_bat_data(local)
+            if len(temp) ==0:
+                return
+            data_temp = {'time': time_x, 'temp': temp}
+            data_hum = {'time': time_x, 'hum': hum}
+            data_pres = {'time': time_x, 'pres': pres}
+            data_bat = {'time': time_x, 'bat': ubat}
+            
+            dataframe_temp = pd.DataFrame(data_temp)
+            dataframe_hum = pd.DataFrame(data_hum)
+            dataframe_pres = pd.DataFrame(data_pres)
+            dataframe_bat = pd.DataFrame(data_bat)
+
+            filtered_temp = dataframe_temp['temp'].rolling(window=l_filter).mean()
+            filtered_hum = dataframe_hum['hum'].rolling(window=l_filter).mean()
+            filtered_pres = dataframe_pres['pres'].rolling(window=l_filter).mean()
+            filtered_bat = dataframe_bat['bat'].rolling(window=l_filter).mean()
+
+            # temperature
+            ax1[0].tick_params(labelrotation=45)
+            ax1[0].set_ylabel('[°C]')
+            ax1[0].grid(True)
+            if not plot_filtered_data: ax1[0].plot(time_x, temp, color=color[i], label=local + ': ' + local_d[1][0])
+            if plot_filtered_data: ax1[0].plot(np.array(time_x), np.array(filtered_temp), color=color[i], zorder=5,
+                                               label=local + ': ' + local_d[1][0])
+
+            # humidity
+            ax1[1].tick_params(labelrotation=45)
+            ax1[1].set_ylabel('[%]')
+            ax1[1].set_title("Humidité")
+            ax1[1].grid(True)
+            if not plot_filtered_data: ax1[1].plot(time_x, hum, color=color[i])
+            if plot_filtered_data: ax1[1].plot(np.array(time_x), np.array(filtered_hum), color=color[i], zorder=5,
+                                               label=local + ': ' + local_d[1][0])
+            
+        fig.legend(loc='center right')#, title=local + ': ' + local_d[1][0])
+            
+        fig.suptitle(PROGRAM_NAME + ' ' + VERSION_NO)
         plt.subplots_adjust(left=0.1,
                             bottom=0.1,
                             right=0.9,
@@ -210,9 +185,10 @@ class AirSensBatGraph:
                             wspace=0.2,
                             hspace=0.4)
         plt.xticks(rotation=30)
-        ax1[1, 1].set_yticks(
-            np.linspace(ax1[1, 1].get_yticks()[0], ax1[1, 1].get_yticks()[-1], len(ax1[1, 1].get_yticks())))
-
+        ax1[1].set_yticks(
+            np.linspace(ax1[1].get_yticks()[0], ax1[1].get_yticks()[-1], len(ax1[1].get_yticks())))
+#         x_center = elaps_s // 2
+#         ax1[0, 0].text(x_center, 10, legend_txt, fontdict=font)
         plt.show()  # plot
 
     def main(self):
@@ -237,20 +213,20 @@ class AirSensBatGraph:
 #             'r1':['test durée p01a 1S1P=4.1V intervalle=1min',1440],
 #             'r2':['test durée p03a 1S2P=4.1V intervalle=1min',1440],
 #             'r4':['test durée p03c 3xAA=4.5V intervalle=1min',1440],
-            '5a':['Extérieur: bme280 1S2P Li-Ion 15min',96],
-            'tld_06c':['Extérieur: bme280 1S2P Li-Ion 5min',288],
-            'tld_06d':['Extérieur: bme280 1S2P Li-Ion 5min',288],
+#             '5a':['Extérieur: bme280 1S2P Li-Ion 15min',96],
+#             'tld_06c':['Extérieur: bme280 1S2P Li-Ion 5min',288],
+#             'tld_06d':['Extérieur: bme280 1S2P Li-Ion 5min',288],
+#             'hdc1080':['Bureau hdc1080: USB=5V intervalle=5min',288],
+#             'Sensor':['Bureau: hdc1080 1S1P Li-Ion 5min',288],
             'First_1':['Bureau: hdc1080 1S1P Li-Ion 5min',288],
-            'First_2':['Bureau: hdc1080 1S1P Li-Ion 5min',288],
-            'xx_bme280':['bme280 1min',1440],
-            'xx_bme680':['bme680 1min',1440],
-            'xx_hdc1080':['hdc1080 1min',1440],
+            'Sensor':['hdc1080 5min',288],
+            'First_2':['hdc1080 5min',288],
+#             'xx_bme280':['bme280 1min',1440],
+#             'xx_bme680':['bme680 1min',1440],
+#             'xx_hdc1080':['hdc1080 1min',1440],
             }
         print('nbre_locaux:',len(locaux))
-        for local in locaux.items():
-            print('working for:', str(local[0]) + ' - ' + str(local[1]))
-            self.plot_air_data(local[0], local[1][0], local[1][1])
-        print('end')
+        self.plot_compare(locaux)
 
 if __name__ == '__main__':
     # instantiate the class
