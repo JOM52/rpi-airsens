@@ -34,7 +34,7 @@ class Mqtt:
         self.mariadb = MariaDb()
         # mqtt
         self.client = None
-        self.mqtt_ip = '192.168.1.108'
+        self.mqtt_ip = '192.168.1.110'
         self.mqtt_topic = "airsens_v3"
         self.data_list = ['temp', 'hum', 'pres', 'gas', 'alt']
         self.data_format = ['{:.2f}', '{:.0f}', '{:.0f}', '{:.0f}', '{:.0f}']
