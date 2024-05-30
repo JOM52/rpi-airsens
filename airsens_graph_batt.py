@@ -18,11 +18,11 @@ v0.2.2 : 03.04.2024 --> axe des abcisses en jours et plus en dates
 """
 import sys
 import socket
-import mysql.connector
+import pymysql
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-import pyautogui
+import screeninfo
 import math
 
 VERSION_NO = '0.2.1'
@@ -53,11 +53,11 @@ class AirSensBatGraph:
         try:
             if local_ip == self.server_ip:  # if we are on the RPI with mysql server (RPI making temp acquis)
                 # test the local database connection
-                con = mysql.connector.connect(user=self.database_username, password=self.database_password,
+                con = pymysql.connect(user=self.database_username, password=self.database_password,
                                               host=self.host_name, database=db)
             else:
                 # test the distant database connection
-                con = mysql.connector.connect(user=self.database_username, password=self.database_password,
+                con = pymysql.connect(user=self.database_username, password=self.database_password,
                                               host=self.server_ip, database=db)
             return con, sys.exc_info()
         except:
@@ -189,7 +189,7 @@ class AirSensBatGraph:
 
                 # adjust the size of the graph to the screen
                 screen_dpi = 90
-                width, height = pyautogui.size()
+                width, height = screeninfo.get_monitors()[0].width, screeninfo.get_monitors()[0].height
                 fig.set_figheight(height / screen_dpi)
                 fig.set_figwidth(width / screen_dpi)
 
