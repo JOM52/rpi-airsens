@@ -27,7 +27,7 @@ import math
 
 VERSION_NO = '0.2.1'
 PROGRAM_NAME = 'airsens_graph_batt.py'
-MYSQL_SERVER = '192.168.1.108'
+MYSQL_SERVER = '192.168.1.165'
 
 
 class AirSensBatGraph:
