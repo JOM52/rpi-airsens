@@ -145,7 +145,7 @@ class AirSensNow:
     
     def main(self):
         # connect on the mqtt client
-        self.mqtt.client = mqtt.Client()
+        self.mqtt.client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION2)
         self.mqtt.client.connect(self.mqtt.mqtt_ip, 1883, 60)
         # mqtt interrup procedures
         self.mqtt.client.on_connect = self.mqtt.on_connect(self.mqtt.mqtt_topic)
